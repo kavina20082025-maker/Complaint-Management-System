@@ -1,0 +1,6 @@
+{
+  "name": "CampusCare - Smart Student Grievance System",
+  "description": "Enterprise university student grievance and complaint management platform with real-time tracking, intelligent SLA routing, and automated resolution workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
