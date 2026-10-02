@@ -1000,3 +1000,64 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
 }
+
+/* Authentication & Registration Screens */
+.auth-wrapper {
+  max-width: 480px;
+  width: 100%;
+  margin: 1.5rem auto;
+  padding: 0.5rem;
+}
+
+.auth-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.25rem 2rem;
+  box-shadow: var(--shadow);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.demo-accounts-bar {
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.demo-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.32rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.demo-chip:hover {
+  background: var(--primary-subtle);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.role-picker-card {
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.role-picker-card.selected {
+  border-color: var(--primary) !important;
+  background: var(--primary-subtle) !important;
+}
+

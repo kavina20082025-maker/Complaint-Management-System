@@ -89,6 +89,7 @@
       id: 'usr_student_kavin',
       name: 'Kavin A M',
       email: 'kavinam@karunya.edu.in',
+      password: 'student123',
       role: 'student',
       department: 'Computer Science & Engineering',
       studentId: 'URK23CS1042',
@@ -99,6 +100,7 @@
       id: 'usr_staff_rajesh',
       name: 'Dr. Rajesh Kumar',
       email: 'staff@campus.com',
+      password: 'staff123',
       role: 'staff',
       department: 'Maintenance',
       phone: 'Ext. 204',
@@ -108,6 +110,7 @@
       id: 'usr_staff_ananya',
       name: 'Ananya Sharma',
       email: 'itstaff@campus.com',
+      password: 'staff123',
       role: 'staff',
       department: 'IT Support',
       phone: 'Ext. 102',
@@ -117,6 +120,7 @@
       id: 'usr_head_selvam',
       name: 'Prof. M. Selvam',
       email: 'head@campus.com',
+      password: 'head123',
       role: 'department_head',
       department: 'Maintenance',
       phone: 'Ext. 200',
@@ -126,6 +130,7 @@
       id: 'usr_admin_sarah',
       name: 'Dr. Sarah Jenkins',
       email: 'admin@campus.com',
+      password: 'admin123',
       role: 'admin',
       department: 'General Administration',
       phone: 'Ext. 900',
@@ -444,12 +449,22 @@
 
   // State with resilient initialization
   let currentUser = getStorage(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
-  if (!currentUser || !currentUser.id || !currentUser.name) {
+  if (currentUser && (!currentUser.id || !currentUser.name)) {
     currentUser = INITIAL_USERS[0];
   }
 
   let users = getStorage(STORAGE_KEYS.USERS, INITIAL_USERS);
   if (!Array.isArray(users) || users.length === 0) users = INITIAL_USERS;
+
+  // Backfill passwords for all users if missing from earlier storage
+  users.forEach((u) => {
+    if (!u.password) {
+      if (u.role === 'admin') u.password = 'admin123';
+      else if (u.role === 'department_head') u.password = 'head123';
+      else if (u.role === 'staff') u.password = 'staff123';
+      else u.password = 'student123';
+    }
+  });
 
   let complaints = getStorage(STORAGE_KEYS.COMPLAINTS, INITIAL_COMPLAINTS);
   if (!Array.isArray(complaints) || complaints.length === 0) complaints = INITIAL_COMPLAINTS;
@@ -659,6 +674,17 @@
 
   // --- UI Routing & Navigation ---
   function navigateTo(viewName, complaintId) {
+    const PROTECTED_VIEWS = ['dashboard', 'submit', 'work-queue', 'sla-warning', 'admin-command', 'users', 'watchlist', 'profile'];
+    if (!currentUser && PROTECTED_VIEWS.includes(viewName)) {
+      activeView = 'login';
+      document.querySelectorAll('.app-view').forEach((v) => v.classList.remove('active'));
+      const loginTarget = document.getElementById('view-login');
+      if (loginTarget) loginTarget.classList.add('active');
+      setupLoginForm();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     activeView = viewName;
     if (complaintId) activeComplaintId = complaintId;
 
@@ -679,6 +705,8 @@
 
     try {
       // Render corresponding view safely
+      if (viewName === 'login') setupLoginForm();
+      if (viewName === 'register') setupRegisterForm();
       if (viewName === 'dashboard') renderDashboard();
       if (viewName === 'submit') setupSubmitForm();
       if (viewName === 'complaint-detail') renderComplaintDetail(activeComplaintId);
@@ -704,12 +732,121 @@
   }
 
   function updateNotificationBadge() {
+    if (!currentUser) {
+      const dot = document.getElementById('notif-badge-dot');
+      if (dot) dot.style.display = 'none';
+      return;
+    }
     const unread = notifications.filter((n) => n.user_id === currentUser.id && !n.read).length;
     const dot = document.getElementById('notif-badge-dot');
     if (dot) dot.style.display = unread > 0 ? 'block' : 'none';
   }
 
+  function populateRoleMenu() {
+    const roleMenu = document.getElementById('role-menu');
+    if (!roleMenu) return;
+
+    if (!currentUser) {
+      roleMenu.innerHTML = `
+        <div style="padding: 12px; text-align: center;">
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem;">Guest Visitor</div>
+          <button class="btn btn-primary btn-sm" style="width: 100%;" id="menu-signin-btn">Sign In</button>
+        </div>
+      `;
+      const btn = document.getElementById('menu-signin-btn');
+      if (btn) btn.onclick = () => { roleMenu.style.display = 'none'; navigateTo('login'); };
+      return;
+    }
+
+    let html = `
+      <div style="padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-subtle);">
+        <div style="font-weight: 800; font-size: 0.84rem; color: var(--text);">${currentUser.name}</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">${currentUser.email}</div>
+        <div style="margin-top: 4px;"><span class="status-tag status-inprogress" style="font-size: 0.65rem;">${(currentUser.role || '').replace('_', ' ').toUpperCase()}</span></div>
+      </div>
+      <div style="font-size:0.68rem; font-weight:800; color:var(--text-subtle); padding:8px 14px 4px; text-transform:uppercase; letter-spacing:0.05em;">Switch Persona</div>
+    `;
+
+    users.slice(0, 5).forEach((u) => {
+      const isCur = u.id === currentUser.id;
+      html += `
+        <div class="role-menu-item" data-switch-id="${u.id}" style="padding: 7px 14px; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: ${isCur ? 'var(--primary-subtle)' : 'transparent'};">
+          <div>
+            <b>${u.name}</b> <span style="font-size:0.68rem; color:var(--text-muted);">(${u.role.replace('_', ' ')})</span>
+          </div>
+          ${isCur ? '<span style="color:var(--primary); font-size:0.8rem;">✓</span>' : ''}
+        </div>
+      `;
+    });
+
+    html += `
+      <div style="border-top: 1px solid var(--border-subtle); margin-top: 4px; padding-top: 4px;">
+        <div class="role-menu-item" id="role-menu-profile-btn" style="padding: 8px 14px; font-size: 0.78rem; cursor: pointer; color: var(--text); display: flex; align-items: center; gap: 0.5rem;">
+          <span>👤</span> <span>Profile & Credentials</span>
+        </div>
+        <div class="role-menu-item" id="role-menu-logout-btn" style="padding: 8px 14px; font-size: 0.78rem; cursor: pointer; color: var(--danger); font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+          <span>🚪</span> <span>Sign Out</span>
+        </div>
+      </div>
+    `;
+
+    roleMenu.innerHTML = html;
+
+    roleMenu.querySelectorAll('[data-switch-id]').forEach((el) => {
+      el.onclick = () => {
+        const uid = el.getAttribute('data-switch-id');
+        const targetUser = users.find((u) => u.id === uid);
+        if (targetUser) {
+          currentUser = targetUser;
+          setStorage(STORAGE_KEYS.CURRENT_USER, currentUser);
+          updateHeaderUser();
+          roleMenu.style.display = 'none';
+          showToast(`Switched active persona to ${targetUser.name}`);
+          navigateTo('dashboard');
+        }
+      };
+    });
+
+    const profBtn = document.getElementById('role-menu-profile-btn');
+    if (profBtn) {
+      profBtn.onclick = () => {
+        roleMenu.style.display = 'none';
+        navigateTo('profile');
+      };
+    }
+
+    const logoutBtn = document.getElementById('role-menu-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.onclick = () => {
+        roleMenu.style.display = 'none';
+        logoutUser();
+      };
+    }
+  }
+
   function updateHeaderUser() {
+    const guestNav = document.getElementById('header-auth-guest');
+    const userNav = document.getElementById('header-auth-user');
+    const sideAuthText = document.getElementById('side-link-auth-text');
+    const sideProfile = document.getElementById('side-link-profile');
+
+    if (!currentUser) {
+      if (guestNav) guestNav.style.display = 'flex';
+      if (userNav) userNav.style.display = 'none';
+      if (sideAuthText) sideAuthText.textContent = 'Sign In / Register';
+      if (sideProfile) sideProfile.style.display = 'none';
+      document.querySelectorAll('.role-student-only, .role-staff-only, .role-admin-only').forEach((el) => {
+        el.style.display = 'none';
+      });
+      populateRoleMenu();
+      return;
+    }
+
+    if (guestNav) guestNav.style.display = 'none';
+    if (userNav) userNav.style.display = 'block';
+    if (sideAuthText) sideAuthText.textContent = 'Sign Out';
+    if (sideProfile) sideProfile.style.display = 'block';
+
     const avatar = document.getElementById('header-user-avatar');
     const nameEl = document.getElementById('header-user-name');
     const roleEl = document.getElementById('header-user-role');
@@ -731,11 +868,277 @@
     document.querySelectorAll('.role-admin-only').forEach((el) => {
       el.style.display = isAdmin ? 'block' : 'none';
     });
+
+    populateRoleMenu();
+  }
+
+  function logoutUser() {
+    if (currentUser) {
+      addAudit('USER_LOGOUT', '—', `Signed out (${currentUser.email})`);
+    }
+    currentUser = null;
+    try { localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch (e) {}
+    try { sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch (e) {}
+
+    updateHeaderUser();
+    updateNotificationBadge();
+    showToast('You have been signed out safely.');
+    navigateTo('login');
+  }
+
+  function setupLoginForm() {
+    const form = document.getElementById('login-form');
+    const alertBox = document.getElementById('login-alert-box');
+    const emailInput = document.getElementById('login-email');
+    const passInput = document.getElementById('login-password');
+    const togglePassBtn = document.getElementById('toggle-login-pass');
+    const forgotBtn = document.getElementById('login-forgot-btn');
+    const rememberBox = document.getElementById('login-remember');
+
+    if (alertBox) alertBox.style.display = 'none';
+
+    // Show/hide password
+    if (togglePassBtn && passInput) {
+      togglePassBtn.onclick = () => {
+        passInput.type = passInput.type === 'password' ? 'text' : 'password';
+        togglePassBtn.textContent = passInput.type === 'password' ? '👁️' : '🙈';
+      };
+    }
+
+    // Forgot password demo action
+    if (forgotBtn) {
+      forgotBtn.onclick = (e) => {
+        e.preventDefault();
+        const em = emailInput ? emailInput.value.trim() : '';
+        if (!em) {
+          showToast('Enter your university email address above first.');
+        } else {
+          showToast(`Password reset link dispatched to ${em}. Demo password is "student123" or "staff123".`);
+        }
+      };
+    }
+
+    // 1-Click Demo Fill buttons
+    document.querySelectorAll('[data-fill]').forEach((btn) => {
+      btn.onclick = () => {
+        const role = btn.getAttribute('data-fill');
+        if (role === 'student') {
+          if (emailInput) emailInput.value = 'kavinam@karunya.edu.in';
+          if (passInput) passInput.value = 'student123';
+        } else if (role === 'staff') {
+          if (emailInput) emailInput.value = 'staff@campus.com';
+          if (passInput) passInput.value = 'staff123';
+        } else if (role === 'head') {
+          if (emailInput) emailInput.value = 'head@campus.com';
+          if (passInput) passInput.value = 'head123';
+        } else if (role === 'admin') {
+          if (emailInput) emailInput.value = 'admin@campus.com';
+          if (passInput) passInput.value = 'admin123';
+        }
+        if (alertBox) alertBox.style.display = 'none';
+        showToast(`Filled demo credentials for ${role.toUpperCase()}`);
+      };
+    });
+
+    if (form) {
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const email = (emailInput ? emailInput.value : '').trim().toLowerCase();
+        const password = (passInput ? passInput.value : '').trim();
+
+        if (!email || !password) {
+          if (alertBox) {
+            alertBox.textContent = 'Please enter both your email address and password.';
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        const user = users.find((u) => u.email.toLowerCase() === email);
+        if (!user) {
+          if (alertBox) {
+            alertBox.innerHTML = `No account found for <b>${email}</b>. Please register below.`;
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        if (user.active === false) {
+          if (alertBox) {
+            alertBox.textContent = 'This account has been deactivated. Please contact campus admin.';
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        // Verify password
+        const expectedPass = user.password || (user.role === 'admin' ? 'admin123' : user.role === 'staff' || user.role === 'department_head' ? 'staff123' : 'student123');
+        if (password !== expectedPass) {
+          if (alertBox) {
+            alertBox.innerHTML = `Incorrect password. (Hint: Demo password is <code>${expectedPass}</code>)`;
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        // Success!
+        currentUser = user;
+        const remember = rememberBox ? rememberBox.checked : true;
+        if (remember) {
+          setStorage(STORAGE_KEYS.CURRENT_USER, currentUser);
+        }
+
+        addAudit('USER_LOGIN', '—', `Logged in via credentials (${user.role})`);
+        updateHeaderUser();
+        updateNotificationBadge();
+        showToast(`Welcome back, ${user.name}!`);
+        navigateTo('dashboard');
+      };
+    }
+  }
+
+  function setupRegisterForm() {
+    const form = document.getElementById('register-form');
+    const alertBox = document.getElementById('register-alert-box');
+    const successBox = document.getElementById('register-success-box');
+    const togglePassBtn = document.getElementById('toggle-reg-pass');
+    const passInput = document.getElementById('reg-password');
+    const confirmInput = document.getElementById('reg-confirm');
+    const roleCardStudent = document.getElementById('role-card-student');
+    const roleCardStaff = document.getElementById('role-card-staff');
+    const idLabel = document.getElementById('reg-id-label');
+    const idInput = document.getElementById('reg-id');
+    const hostelGroup = document.getElementById('reg-hostel-group');
+
+    if (alertBox) alertBox.style.display = 'none';
+    if (successBox) successBox.style.display = 'none';
+
+    // Show/hide password
+    if (togglePassBtn && passInput) {
+      togglePassBtn.onclick = () => {
+        passInput.type = passInput.type === 'password' ? 'text' : 'password';
+        togglePassBtn.textContent = passInput.type === 'password' ? '👁️' : '🙈';
+      };
+    }
+
+    // Role radio cards toggle
+    const updateRoleUI = () => {
+      const selected = document.querySelector('input[name="reg_role_choice"]:checked');
+      const role = selected ? selected.value : 'student';
+      if (role === 'student') {
+        if (roleCardStudent) roleCardStudent.className = 'role-picker-card selected';
+        if (roleCardStaff) roleCardStaff.className = 'role-picker-card';
+        if (idLabel) idLabel.textContent = 'Student Reg. Number *';
+        if (idInput) idInput.placeholder = 'e.g. URK23CS1042';
+        if (hostelGroup) hostelGroup.style.display = 'block';
+      } else {
+        if (roleCardStudent) roleCardStudent.className = 'role-picker-card';
+        if (roleCardStaff) roleCardStaff.className = 'role-picker-card selected';
+        if (idLabel) idLabel.textContent = 'Staff / Faculty ID *';
+        if (idInput) idInput.placeholder = 'e.g. FAC-4089';
+        if (hostelGroup) hostelGroup.style.display = 'none';
+      }
+    };
+
+    document.querySelectorAll('input[name="reg_role_choice"]').forEach((r) => {
+      r.onchange = updateRoleUI;
+    });
+
+    if (form) {
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        if (alertBox) alertBox.style.display = 'none';
+
+        const name = (document.getElementById('reg-name')?.value || '').trim();
+        const studentId = (document.getElementById('reg-id')?.value || '').trim();
+        const email = (document.getElementById('reg-email')?.value || '').trim().toLowerCase();
+        const phone = (document.getElementById('reg-phone')?.value || '').trim();
+        const dept = (document.getElementById('reg-dept')?.value || '').trim();
+        const hostel = (document.getElementById('reg-hostel')?.value || '').trim();
+        const pass = (document.getElementById('reg-password')?.value || '').trim();
+        const confirm = (document.getElementById('reg-confirm')?.value || '').trim();
+        const role = (document.querySelector('input[name="reg_role_choice"]:checked')?.value || 'student');
+
+        if (!name || !email || !pass || !dept) {
+          if (alertBox) {
+            alertBox.textContent = 'Please fill out all required fields marked with *.';
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        if (pass.length < 6) {
+          if (alertBox) {
+            alertBox.textContent = 'Password must be at least 6 characters long.';
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        if (pass !== confirm) {
+          if (alertBox) {
+            alertBox.textContent = 'Passwords do not match. Please re-enter your password.';
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        // Check duplicate email
+        const exists = users.find((u) => u.email.toLowerCase() === email);
+        if (exists) {
+          if (alertBox) {
+            alertBox.innerHTML = `An account already exists with <b>${email}</b>. Please sign in instead.`;
+            alertBox.style.display = 'flex';
+          }
+          return;
+        }
+
+        const newUser = {
+          id: 'usr_' + role + '_' + Date.now().toString(36),
+          name: name,
+          email: email,
+          password: pass,
+          role: role,
+          department: dept,
+          studentId: studentId || ('ID-' + Math.floor(1000 + Math.random() * 9000)),
+          phone: phone || '+91 90000 00000',
+          hostel: hostel,
+          active: true,
+        };
+
+        users.push(newUser);
+        setStorage(STORAGE_KEYS.USERS, users);
+
+        // Sign in new user
+        currentUser = newUser;
+        setStorage(STORAGE_KEYS.CURRENT_USER, currentUser);
+
+        addAudit('USER_REGISTERED', '—', `Registered new account (${newUser.role}, ${newUser.department})`);
+        addNotification(newUser.id, 'Welcome to CampusCare! 🎓', 'Your university grievance portal account is active. File and track complaints in real time.', null);
+
+        updateHeaderUser();
+        updateNotificationBadge();
+
+        if (successBox) {
+          successBox.textContent = `Account created successfully! Redirecting to dashboard...`;
+          successBox.style.display = 'flex';
+        }
+
+        setTimeout(() => {
+          showToast(`Account created! Welcome, ${newUser.name}.`);
+          navigateTo('dashboard');
+        }, 500);
+      };
+    }
   }
 
   // --- Render Functions ---
 
   function renderDashboard() {
+    if (!currentUser) {
+      navigateTo('login');
+      return;
+    }
     const isStudent = currentUser.role === 'student';
     const filtered = isStudent
       ? complaints.filter((c) => c.student_id === currentUser.id)
@@ -1833,46 +2236,14 @@
         };
       }
 
-      // Role switcher dropdown
+      // Role switcher dropdown toggle
       const roleBtn = document.getElementById('role-dropdown-btn');
       const roleMenu = document.getElementById('role-menu');
       if (roleBtn && roleMenu) {
-        roleBtn.onclick = () => {
+        roleBtn.onclick = (e) => {
+          e.stopPropagation();
           roleMenu.style.display = roleMenu.style.display === 'block' ? 'none' : 'block';
         };
-
-        // Populate role menu
-        roleMenu.innerHTML = '<div style="font-size:0.7rem; font-weight:800; color:var(--text-subtle); padding:6px 12px; text-transform:uppercase;">Switch Active Persona</div>';
-        users.forEach((u) => {
-          const item = document.createElement('div');
-          item.style.padding = '8px 12px';
-          item.style.fontSize = '0.78rem';
-          item.style.cursor = 'pointer';
-          item.style.borderBottom = '1px solid var(--border-subtle)';
-          item.innerHTML = `<b>${u.name}</b> <span style="font-size:0.7rem; color:var(--text-muted);">(${(u.role || '').replace('_', ' ')})</span>`;
-          item.onclick = () => {
-            currentUser = u;
-            setStorage(STORAGE_KEYS.CURRENT_USER, currentUser);
-            updateHeaderUser();
-            roleMenu.style.display = 'none';
-            showToast(`Switched active persona to ${u.name}.`);
-            navigateTo('dashboard');
-          };
-          roleMenu.appendChild(item);
-        });
-
-        // Reset data button inside role menu
-        const resetItem = document.createElement('div');
-        resetItem.style.padding = '8px 12px';
-        resetItem.style.fontSize = '0.72rem';
-        resetItem.style.color = 'var(--danger)';
-        resetItem.style.cursor = 'pointer';
-        resetItem.textContent = '↺ Reset all data to factory seeds';
-        resetItem.onclick = () => {
-          try { localStorage.clear(); } catch (e) {}
-          window.location.reload();
-        };
-        roleMenu.appendChild(resetItem);
 
         // Global click listener to close popups
         document.addEventListener('click', (e) => {
@@ -1880,6 +2251,18 @@
             roleMenu.style.display = 'none';
           }
         });
+      }
+
+      // Sidebar auth button
+      const sideAuthBtn = document.getElementById('side-link-auth');
+      if (sideAuthBtn) {
+        sideAuthBtn.onclick = () => {
+          if (currentUser) {
+            logoutUser();
+          } else {
+            navigateTo('login');
+          }
+        };
       }
 
       // Navigation triggers
@@ -1906,7 +2289,11 @@
 
       updateHeaderUser();
       updateNotificationBadge();
-      navigateTo('dashboard');
+      if (currentUser) {
+        navigateTo('dashboard');
+      } else {
+        navigateTo('login');
+      }
     } catch (err) {
       console.error('CampusCare initialization error:', err);
     }
