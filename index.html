@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
@@ -169,7 +170,7 @@
             <p>Report campus issues, track live SLA countdowns, engage with administrative duty officers, and verify resolutions before final closure.</p>
             <div class="hero-actions">
               <button class="btn btn-light role-student-only" data-view="submit">+ Report Grievance</button>
-              <button class="btn btn-outline" data-view="status-board" style="color: #ffffff; border-color: rgba(255,255,255,0.25);">Live Status Board</button>
+              <button class="btn btn-outline" data-view="status-board" style="color: #000000; background: #ffffff; border: 1px solid #cbd5e1;">Live Status Board</button>
             </div>
           </div>
 
@@ -902,7 +903,8 @@
       </div>
     </footer>
 
-    <!-- Pure Vanilla JS Engine -->
-    <script type="module" src="./src/app.js"></script>
+    <!-- Pure Vanilla JS Engine (Supports both root and src directory placement) -->
+    <script src="app.js"></script>
+    <script src="./src/app.js"></script>
   </body>
 </html>
