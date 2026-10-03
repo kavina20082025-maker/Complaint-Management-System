@@ -25,7 +25,7 @@
         </button>
 
         <!-- Top Nav Links -->
-        <nav class="topbar-nav">
+        <nav class="topbar-nav" id="topbar-nav">
           <button class="nav-link active" data-view="dashboard">Overview</button>
           <button class="nav-link" data-view="status-board">Status Board</button>
           <button class="nav-link" data-view="search">Search & Filter</button>
@@ -45,15 +45,15 @@
           </button>
 
           <!-- Notification Bell -->
-          <button class="btn-icon" data-view="dashboard" title="Notifications" aria-label="Notifications">
+          <button id="header-notif-btn" class="btn-icon" data-view="dashboard" title="Notifications" aria-label="Notifications">
             🔔
             <span id="notif-badge-dot" class="badge-dot" style="display: none;"></span>
           </button>
 
           <!-- Guest Auth Actions (when signed out) -->
           <div id="header-auth-guest" style="display: none; align-items: center; gap: 0.5rem;">
-            <button class="btn btn-outline btn-sm" data-view="login">Sign In</button>
-            <button class="btn btn-primary btn-sm" data-view="register">Register</button>
+            <button id="header-login-btn" class="btn btn-outline btn-sm" data-view="login">Sign In</button>
+            <button id="header-register-btn" class="btn btn-primary btn-sm" data-view="register">Register</button>
           </div>
 
           <!-- Logged-in Persona Selector Pill -->
@@ -77,9 +77,9 @@
     </header>
 
     <!-- App Shell: Sidebar + Main Viewport -->
-    <div class="app-shell">
+    <div class="app-shell" id="app-shell">
       <!-- Sidebar -->
-      <aside class="app-sidebar">
+      <aside class="app-sidebar" id="app-sidebar">
         <!-- Group 1: General -->
         <div>
           <div class="side-group-title">Navigation</div>

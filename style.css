@@ -1061,3 +1061,38 @@ body {
   background: var(--primary-subtle) !important;
 }
 
+/* Authentication Mode (Sign In & Register Screen Navigation Hiding) */
+body.auth-mode .topbar-nav,
+body.auth-mode #topbar-nav,
+body.auth-mode .app-sidebar,
+body.auth-mode #app-sidebar,
+body.auth-mode #header-auth-user,
+body.auth-mode #header-notif-btn,
+body.auth-mode .topbar-actions .role-student-only {
+  display: none !important;
+}
+
+body.auth-mode .app-shell {
+  max-width: 100%;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 140px);
+}
+
+body.auth-mode .main-viewport {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+body.auth-mode .auth-wrapper {
+  margin: 0 auto;
+  width: 100%;
+}
+

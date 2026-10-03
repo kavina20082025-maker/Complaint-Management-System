@@ -447,11 +447,20 @@
     } catch (e) {}
   }
 
-  // State with resilient initialization
-  let currentUser = getStorage(STORAGE_KEYS.CURRENT_USER, INITIAL_USERS[0]);
-  if (currentUser && (!currentUser.id || !currentUser.name)) {
-    currentUser = INITIAL_USERS[0];
-  }
+  // State with resilient initialization: Users start signed out until they login or have an active session
+  let currentUser = (function () {
+    try {
+      const explicit = sessionStorage.getItem('campuscare_has_signed_in');
+      const stored = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (explicit === 'true' && stored) {
+        const u = JSON.parse(stored);
+        if (u && u.id && u.name) return u;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  })();
 
   let users = getStorage(STORAGE_KEYS.USERS, INITIAL_USERS);
   if (!Array.isArray(users) || users.length === 0) users = INITIAL_USERS;
@@ -673,16 +682,63 @@
   }
 
   // --- UI Routing & Navigation ---
+  function updateNavigationVisibility() {
+    const isAuthView = !currentUser || activeView === 'login' || activeView === 'register';
+
+    if (isAuthView) {
+      document.body.classList.add('auth-mode');
+      document.body.classList.remove('logged-in-mode');
+    } else {
+      document.body.classList.remove('auth-mode');
+      document.body.classList.add('logged-in-mode');
+    }
+
+    const topbarNav = document.getElementById('topbar-nav') || document.querySelector('.topbar-nav');
+    const sidebar = document.getElementById('app-sidebar') || document.querySelector('.app-sidebar');
+    const notifBtn = document.getElementById('header-notif-btn');
+    const studentBtn = document.querySelector('.topbar-actions .role-student-only');
+    const guestNav = document.getElementById('header-auth-guest');
+    const userNav = document.getElementById('header-auth-user');
+    const headerLoginBtn = document.getElementById('header-login-btn');
+    const headerRegBtn = document.getElementById('header-register-btn');
+
+    if (isAuthView) {
+      if (topbarNav) topbarNav.style.display = 'none';
+      if (sidebar) sidebar.style.display = 'none';
+      if (notifBtn) notifBtn.style.display = 'none';
+      if (studentBtn) studentBtn.style.display = 'none';
+      if (userNav) userNav.style.display = 'none';
+      if (guestNav) {
+        guestNav.style.display = 'flex';
+        if (activeView === 'login') {
+          if (headerLoginBtn) headerLoginBtn.style.display = 'none';
+          if (headerRegBtn) {
+            headerRegBtn.style.display = 'inline-flex';
+            headerRegBtn.textContent = 'Register Account';
+          }
+        } else if (activeView === 'register') {
+          if (headerLoginBtn) {
+            headerLoginBtn.style.display = 'inline-flex';
+            headerLoginBtn.textContent = 'Sign In';
+          }
+          if (headerRegBtn) headerRegBtn.style.display = 'none';
+        }
+      }
+    } else {
+      if (topbarNav) topbarNav.style.display = 'flex';
+      if (sidebar) sidebar.style.display = 'flex';
+      if (notifBtn) notifBtn.style.display = 'grid';
+      if (guestNav) guestNav.style.display = 'none';
+      if (userNav) userNav.style.display = 'block';
+      if (studentBtn && currentUser && currentUser.role === 'student') {
+        studentBtn.style.display = 'inline-flex';
+      }
+    }
+  }
+
   function navigateTo(viewName, complaintId) {
-    const PROTECTED_VIEWS = ['dashboard', 'submit', 'work-queue', 'sla-warning', 'admin-command', 'users', 'watchlist', 'profile'];
-    if (!currentUser && PROTECTED_VIEWS.includes(viewName)) {
-      activeView = 'login';
-      document.querySelectorAll('.app-view').forEach((v) => v.classList.remove('active'));
-      const loginTarget = document.getElementById('view-login');
-      if (loginTarget) loginTarget.classList.add('active');
-      setupLoginForm();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+    if (!currentUser && viewName !== 'login' && viewName !== 'register') {
+      viewName = 'login';
     }
 
     activeView = viewName;
@@ -692,6 +748,9 @@
     document.querySelectorAll('.app-view').forEach((v) => v.classList.remove('active'));
     const target = document.getElementById('view-' + viewName);
     if (target) target.classList.add('active');
+
+    // Update navigation visibility: hidden on sign in / register, visible after login only
+    updateNavigationVisibility();
 
     // Update active nav links
     document.querySelectorAll('.side-link, .nav-link').forEach((el) => {
@@ -825,6 +884,8 @@
   }
 
   function updateHeaderUser() {
+    updateNavigationVisibility();
+
     const guestNav = document.getElementById('header-auth-guest');
     const userNav = document.getElementById('header-auth-user');
     const sideAuthText = document.getElementById('side-link-auth-text');
@@ -879,8 +940,10 @@
     currentUser = null;
     try { localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch (e) {}
     try { sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch (e) {}
+    try { sessionStorage.removeItem('campuscare_has_signed_in'); } catch (e) {}
 
     updateHeaderUser();
+    updateNavigationVisibility();
     updateNotificationBadge();
     showToast('You have been signed out safely.');
     navigateTo('login');
@@ -987,9 +1050,11 @@
         if (remember) {
           setStorage(STORAGE_KEYS.CURRENT_USER, currentUser);
         }
+        try { sessionStorage.setItem('campuscare_has_signed_in', 'true'); } catch (e) {}
 
         addAudit('USER_LOGIN', '—', `Logged in via credentials (${user.role})`);
         updateHeaderUser();
+        updateNavigationVisibility();
         updateNotificationBadge();
         showToast(`Welcome back, ${user.name}!`);
         navigateTo('dashboard');
@@ -1112,11 +1177,13 @@
         // Sign in new user
         currentUser = newUser;
         setStorage(STORAGE_KEYS.CURRENT_USER, currentUser);
+        try { sessionStorage.setItem('campuscare_has_signed_in', 'true'); } catch (e) {}
 
         addAudit('USER_REGISTERED', '—', `Registered new account (${newUser.role}, ${newUser.department})`);
         addNotification(newUser.id, 'Welcome to CampusCare! 🎓', 'Your university grievance portal account is active. File and track complaints in real time.', null);
 
         updateHeaderUser();
+        updateNavigationVisibility();
         updateNotificationBadge();
 
         if (successBox) {
@@ -2265,8 +2332,21 @@
         };
       }
 
+      // Brand lockup click handler
+      document.querySelectorAll('.brand-lockup').forEach((el) => {
+        el.onclick = (e) => {
+          e.preventDefault();
+          if (currentUser) {
+            navigateTo('dashboard');
+          } else {
+            navigateTo('login');
+          }
+        };
+      });
+
       // Navigation triggers
       document.querySelectorAll('[data-view]').forEach((el) => {
+        if (el.classList.contains('brand-lockup')) return;
         el.onclick = (e) => {
           e.preventDefault();
           const v = el.getAttribute('data-view');
@@ -2288,6 +2368,7 @@
       }
 
       updateHeaderUser();
+      updateNavigationVisibility();
       updateNotificationBadge();
       if (currentUser) {
         navigateTo('dashboard');
