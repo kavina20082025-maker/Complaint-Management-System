@@ -2098,37 +2098,245 @@
     });
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function formatAssistantText(text) {
+    if (!text) return '';
+    let safe = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    safe = safe.replace(/`([^`]+)`/g, '<code style="background:var(--card); border:1px solid var(--border); padding:2px 5px; border-radius:4px; font-family:var(--font-mono); font-size:0.75rem;">$1</code>');
+
+    const lines = safe.split('\n');
+    let inList = false;
+    const result = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('• ') || line.startsWith('- ') || line.startsWith('* ')) {
+        if (!inList) {
+          result.push('<ul style="margin: 0.35rem 0 0.5rem 1.2rem; padding: 0;">');
+          inList = true;
+        }
+        result.push(`<li style="margin-bottom: 0.25rem;">${line.substring(2)}</li>`);
+      } else {
+        if (inList) {
+          result.push('</ul>');
+          inList = false;
+        }
+        if (line) {
+          result.push(`<p style="margin: 0 0 0.45rem 0;">${line}</p>`);
+        }
+      }
+    }
+    if (inList) result.push('</ul>');
+    return result.join('');
+  }
+
+  function analyzePolicyQuestionClientSide(q) {
+    const lq = q.toLowerCase();
+
+    if (lq.includes('water') || lq.includes('leak') || lq.includes('plumbing') || lq.includes('pipe') || lq.includes('tap') || lq.includes('drain') || lq.includes('bathroom') || lq.includes('toilet') || lq.includes('shower')) {
+      return `**Analysis: Hostel & Campus Infrastructure (Water & Sanitation Issue)**\n\n` +
+        `• **Designated Category:** Infrastructure / Hostel Maintenance\n` +
+        `• **Target SLA:** **Critical (4 Hours)** for whole-floor or block water outages; **High (12 Hours)** for room-level leakages, tap replacements, or drain blockages.\n` +
+        `• **Assigned Department:** Estate Maintenance & Plumbing Duty Staff.\n\n` +
+        `**Recommended Action:**\n` +
+        `1. Click **New Grievance** in the sidebar.\n` +
+        `2. Select **Hostel** or **Infrastructure**, describe the exact block and room number, and set Priority to **High** or **Critical**.\n` +
+        `3. You will receive an immediate live SLA countdown tracking code. If not resolved within the timer, it automatically escalates to the Chief Warden and Estate Officer.`;
+    }
+
+    if (lq.includes('power') || lq.includes('electric') || lq.includes('blackout') || lq.includes('light') || lq.includes('fan') || lq.includes('socket') || lq.includes('ac ') || lq.includes('air conditioner') || lq.includes('switchboard') || lq.includes('spark')) {
+      return `**Analysis: Electrical & Power Outage Report**\n\n` +
+        `• **Designated Category:** Infrastructure (Electrical Cell)\n` +
+        `• **Target SLA:** **Critical (4 Hours)** for total room/corridor blackouts, spark hazards, or tripping circuit breakers; **Medium (48 Hours)** for single socket or fan capacitor maintenance.\n` +
+        `• **Duty Officer:** Campus Substation & Electrical Duty Engineer.\n\n` +
+        `**Resolution Procedure:**\n` +
+        `Submit a ticket under **Infrastructure** with tag \`Electrical\`. Electrical maintenance units work on continuous rotating campus shifts (24/7 coverage for student residential zones).`;
+    }
+
+    if (lq.includes('wifi') || lq.includes('wi-fi') || lq.includes('internet') || lq.includes('lan') || lq.includes('network') || lq.includes('portal') || lq.includes('login') || lq.includes('lms') || lq.includes('erp') || lq.includes('email') || lq.includes('password')) {
+      return `**Analysis: IT Infrastructure & Campus Network Query**\n\n` +
+        `• **Designated Category:** IT Support\n` +
+        `• **Target SLA:** **High (12 Hours)** during academic exam/submission weeks, otherwise **Medium (48 Hours)**.\n` +
+        `• **Responsible Unit:** Center for Digital Excellence & Network Operations Center (NOC).\n\n` +
+        `**Steps to Resolve:**\n` +
+        `Provide your MAC address, hostel wing, or portal error code in the ticket description. NOC engineers verify IP allocation tables and reset authentication profiles directly.`;
+    }
+
+    if (lq.includes('food') || lq.includes('mess') || lq.includes('canteen') || lq.includes('dining') || lq.includes('hygiene') || lq.includes('meal') || lq.includes('cater') || lq.includes('breakfast') || lq.includes('lunch') || lq.includes('dinner')) {
+      return `**Analysis: Mess Food Quality & Dining Hygiene Inquiry**\n\n` +
+        `• **Designated Category:** Food / Mess Services\n` +
+        `• **Target SLA:** **High (12 Hours)** with mandatory Food Safety Officer kitchen inspection.\n` +
+        `• **Oversight Body:** Joint Student Mess Committee & University Health Officer.\n\n` +
+        `**University Regulations:**\n` +
+        `Students can file tickets regarding meal hygiene, raw ingredient standards, or foreign objects. Photographic evidence is strongly recommended and attaches directly to your ticket for surprise audit verification.`;
+    }
+
+    if (lq.includes('mark') || lq.includes('grade') || lq.includes('exam') || lq.includes('attendance') || lq.includes('professor') || lq.includes('faculty') || lq.includes('teacher') || lq.includes('academic') || lq.includes('internal') || lq.includes('subject') || lq.includes('course') || lq.includes('test')) {
+      return `**Analysis: Academic Redressal & Evaluation Policy**\n\n` +
+        `• **Designated Category:** Academic\n` +
+        `• **Target SLA:** **Medium (48 Hours)** for internal assessment re-check or attendance audit.\n` +
+        `• **Jurisdiction:** Head of Department (HoD) & Academic Dean.\n\n` +
+        `**Official Redressal Workflow:**\n` +
+        `1. File under **Academic** category specifying Course Code, Subject Title, and Faculty Name.\n` +
+        `2. The HoD is bound by university ordinance to review verified attendance registers or answer scripts within 48 hours.\n` +
+        `3. If unresolved, it escalates to the Academic Grievance Cell presided by the Controller of Examinations.`;
+    }
+
+    if (lq.includes('fee') || lq.includes('payment') || lq.includes('receipt') || lq.includes('refund') || lq.includes('scholarship') || lq.includes('fine') || lq.includes('tuition') || lq.includes('dues') || lq.includes('challan')) {
+      return `**Analysis: Fee Dispute & Financial Redressal Procedure**\n\n` +
+        `• **Designated Category:** Fees & Accounts\n` +
+        `• **Target SLA:** **Medium (48 Hours)** for duplicate debit verification; **120 Hours** for refund disbursement.\n` +
+        `• **Department:** Finance & Accounts Bureau.\n\n` +
+        `**Requirements:**\n` +
+        `Attach your Bank UTR / Transaction Reference Number, payment date, and Student ID. The Finance Office reconciles gateway logs directly against ERP student ledger accounts.`;
+    }
+
+    if (lq.includes('ragging') || lq.includes('bully') || lq.includes('harass') || lq.includes('threat') || lq.includes('safety') || lq.includes('fight') || lq.includes('abuse') || lq.includes('security') || lq.includes('emergency') || lq.includes('police')) {
+      return `**Analysis: Anti-Ragging & Emergency Safety Directive (Zero Tolerance)**\n\n` +
+        `• **Designated Category:** Safety & Security (UGC/Statutory Mandate)\n` +
+        `• **Target SLA:** **CRITICAL (Immediate response, 4-Hour maximum investigation)**\n` +
+        `• **Jurisdiction:** Anti-Ragging Committee, Dean of Student Affairs, Chief Security Officer.\n\n` +
+        `**Protective Safeguards:**\n` +
+        `• You can submit this grievance **100% Anonymously** by ticking the anonymous option on the filing form.\n` +
+        `• Your identity is protected under the Whistleblower Security Charter.\n` +
+        `• If you are in immediate distress, you can also contact the 24/7 Campus Security Control Room directly at +91 422 261 4300.`;
+    }
+
+    if (lq.includes('bus') || lq.includes('transport') || lq.includes('driver') || lq.includes('route') || lq.includes('commute') || lq.includes('shuttle') || lq.includes('pass')) {
+      return `**Analysis: Campus Transportation & Shuttle Service Policy**\n\n` +
+        `• **Designated Category:** Transport\n` +
+        `• **Target SLA:** **Medium (48 Hours)**; **High (12 Hours)** if entire route is stranded.\n` +
+        `• **Responsible Officer:** Transport Officer & Fleet Supervisor.\n\n` +
+        `**Guidance:**\n` +
+        `Please mention Route Number, Bus Registration, and Boarding Stop. GPS telemetry logs will be extracted to verify departure timings and driver conduct.`;
+    }
+
+    if (lq.includes('hostel') || lq.includes('room') || lq.includes('warden') || lq.includes('curfew') || lq.includes('roommate') || lq.includes('bed') || lq.includes('mess card')) {
+      return `**Analysis: Hostel Resident Affairs & Accommodation Policy**\n\n` +
+        `• **Designated Category:** Hostel\n` +
+        `• **Target SLA:** **Medium (48 Hours)** for room relocation or furniture repair; **Critical (4 Hours)** for security or lock failure.\n` +
+        `• **Responsible Official:** Resident Warden & Chief Warden.\n\n` +
+        `**Procedure:**\n` +
+        `State your Hostel Name, Wing, and Room number. Resident Wardens are mandated to inspect premises on a daily basis between 5:00 PM and 7:00 PM.`;
+    }
+
+    if (lq.includes('reopen') || lq.includes('not fixed') || lq.includes('dissatisfied') || lq.includes('unsatisfied') || lq.includes('verify') || lq.includes('close') || lq.includes('closure')) {
+      return `**Analysis: Resolution Verification Loop Policy**\n\n` +
+        `• **How it works:** In CampusCare V3, staff members *cannot* unilaterally close a complaint.\n` +
+        `• When a staff officer changes a status to **Resolved**, the ticket enters a student testing period.\n` +
+        `• You can inspect the physical work, and if the issue persists, simply open the ticket and click **"Reopen Ticket"**.\n` +
+        `• Reopened tickets receive an automatic urgency bump and alert the Department Head immediately for supervisory intervention.`;
+    }
+
+    if (lq.includes('sla') || lq.includes('escalat') || lq.includes('deadline') || lq.includes('overdue') || lq.includes('delay') || lq.includes('timer') || lq.includes('time limit')) {
+      return `**Analysis: Guaranteed SLA Matrix & Auto-Escalation Engine**\n\n` +
+        `• **Critical:** 4 Hours (safety, water outages, severe blackout, ragging)\n` +
+        `• **High:** 12 Hours (exam IT issues, dining hygiene, lab gear)\n` +
+        `• **Medium:** 48 Hours (room repairs, fee receipt matching, transport)\n` +
+        `• **Low:** 120 Hours (general suggestions, library acquisitions)\n\n` +
+        `**Auto-Escalation:** If a timer reaches 00:00:00 without closure, the ticket turns red (\`Overdue\`) and triggers escalation notifications up the hierarchy: Assigned Staff ➔ Department Head ➔ Dean of Student Affairs.`;
+    }
+
+    // Dynamic tailored synthesis for any other questions
+    const cleanQ = q.replace(/[?.,!]/g, '').trim();
+    return `**Analysis of Your Inquiry: "${q.trim()}"**\n\n` +
+      `Thank you for consulting the CampusCare AI Policy Guide. Here is the operational analysis for your inquiry regarding "${cleanQ}":\n\n` +
+      `• **Assessment:** This matter falls under university campus policy and can be officially tracked and resolved through the CampusCare system.\n` +
+      `• **Recommended Action:** Click **New Grievance** in the sidebar. Select the appropriate category, enter the exact campus location or course/hostel details, and submit your complaint.\n` +
+      `• **Real-Time SLA Commitment:** Your grievance will receive an immediate live countdown timer (ranging from 4 hours for urgent hazards up to 48 hours for standard requests).\n` +
+      `• **Guaranteed Redressal:** If the deadline is not met by the assigned department, our automated escalation matrix immediately notifies the Department Head and the Dean of Student Affairs.`;
+  }
+
   function renderAssistant() {
     const input = document.getElementById('assistant-input');
     const msgList = document.getElementById('assistant-messages');
     const sendBtn = document.getElementById('assistant-send-btn');
     if (!sendBtn || !input || !msgList) return;
 
-    sendBtn.onclick = () => {
+    // Bind prompt suggestion chips
+    document.querySelectorAll('.assistant-chip').forEach((chip) => {
+      chip.onclick = () => {
+        const prompt = chip.getAttribute('data-prompt');
+        if (prompt && input) {
+          input.value = prompt;
+          sendBtn.click();
+        }
+      };
+    });
+
+    // Enter key submits inquiry
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    };
+
+    sendBtn.onclick = async () => {
       const q = (input.value || '').trim();
       if (!q) return;
       input.value = '';
 
       // Append user msg
-      msgList.innerHTML += `<div class="chat-bubble mine" style="margin-bottom:0.75rem;">${q}</div>`;
+      msgList.innerHTML += `<div class="chat-bubble mine" style="margin-bottom:0.75rem;">${escapeHtml(q)}</div>`;
+      msgList.scrollTop = msgList.scrollHeight;
 
-      // Match answer
-      let reply = 'CampusCare provides transparent grievance resolution under strict university SLAs: Critical (4h), High (12h), Medium (48h), and Low (120h). If your complaint passes the deadline, it is auto-escalated to the Dean of Student Affairs.';
-      const lq = q.toLowerCase();
-      if (lq.includes('sla') || lq.includes('deadline') || lq.includes('hours')) {
-        reply = 'University SLA targets are: Critical hazards = 4 hours; High urgency = 12 hours; Medium = 48 hours; Low = 120 hours. All tickets carry live real-time countdown timers.';
-      } else if (lq.includes('reopen') || lq.includes('not fixed') || lq.includes('verify')) {
-        reply = 'CampusCare V3 enforces a Resolution Verification Loop. When staff marks a complaint as Resolved, you are asked to test the fix. You can either approve and rate the service, or reopen it with an explanation.';
-      } else if (lq.includes('duplicate')) {
-        reply = 'CampusCare uses real-time bigram similarity checking. If an issue in your block or class has already been logged, you will see a warning link to follow the existing ticket.';
-      } else if (lq.includes('anonymous') || lq.includes('ragging') || lq.includes('privacy')) {
-        reply = 'You can submit anonymous complaints using the checkbox on the New Grievance form. Your name will be hidden from normal views, while safety and harassment complaints trigger immediate high-priority alerts.';
+      // Show temporary analyzing indicator
+      const typingId = 'typing-' + Date.now();
+      msgList.innerHTML += `<div id="${typingId}" class="chat-bubble theirs" style="margin-bottom:0.75rem; opacity:0.75; font-style:italic;">Analyzing question & university policies...</div>`;
+      msgList.scrollTop = msgList.scrollHeight;
+
+      const removeTyping = () => {
+        const el = document.getElementById(typingId);
+        if (el) el.remove();
+      };
+
+      try {
+        const res = await fetch('/api/assistant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: q,
+            role: currentUser ? currentUser.role : 'Student',
+            department: currentUser ? currentUser.department : 'General'
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.reply) {
+            removeTyping();
+            msgList.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:0.75rem;">${formatAssistantText(data.reply)}</div>`;
+            msgList.scrollTop = msgList.scrollHeight;
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Backend assistant API offline, using client-side policy analyzer:', err);
       }
 
+      // Rich client-side policy analyzer
       setTimeout(() => {
-        msgList.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:0.75rem;">${reply}</div>`;
+        removeTyping();
+        const analyticalReply = analyzePolicyQuestionClientSide(q);
+        msgList.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:0.75rem;">${formatAssistantText(analyticalReply)}</div>`;
         msgList.scrollTop = msgList.scrollHeight;
-      }, 250);
+      }, 350);
     };
   }
 

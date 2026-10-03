@@ -964,8 +964,15 @@
                 Hello! I am the CampusCare University Grievance Guide. Ask me anything about university complaint filing, guaranteed SLA timelines, resolution verification, emergency reporting, or office contact points.
               </div>
             </div>
+            <div id="assistant-chips" style="padding: 0.5rem 1rem; background: var(--bg-subtle); border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
+              <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-subtle); text-transform: uppercase;">Quick Topics:</span>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="What should I do if my hostel has no water supply or electricity?">💧 Hostel Outage (SLA)</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="How can I report anti-ragging or safety concerns anonymously?">🛡️ Anonymous Safety</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="What happens when an SLA deadline is missed by the department?">⏱️ Missed Deadline Escalation</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="How do I reopen an issue if the staff marked it resolved without fixing it?">🔄 Reopen Verification Loop</button>
+            </div>
             <div class="chat-input-bar">
-              <input id="assistant-input" type="text" class="form-input" placeholder="Ask about SLA deadlines, reopening a ticket, or filing anonymous complaints..." />
+              <input id="assistant-input" type="text" class="form-input" placeholder="Ask about SLA deadlines, reopening a ticket, or filing anonymous complaints..." autocomplete="off" />
               <button id="assistant-send-btn" class="btn btn-primary btn-sm">Ask Guide</button>
             </div>
           </div>
