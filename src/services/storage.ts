@@ -8,6 +8,7 @@ import {
   ResponseTemplate,
   ServiceDesk,
   User,
+  RecentScanItem,
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -23,6 +24,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'campuscare_audit_logs',
   WATCHLIST: 'campuscare_watchlist',
   THEME: 'campuscare_theme',
+  RECENT_SCANS: 'campuscare_recent_scans',
 };
 
 // Default seed users
@@ -220,6 +222,117 @@ const INITIAL_COMPLAINTS: Complaint[] = [
         note: 'CRITICAL ALERT: Electrical hazard detected. Auto-escalated to Maintenance head & Safety desk.',
         at: hoursAgo(1.5),
         author: 'Smart Engine',
+      },
+    ],
+  },
+  {
+    complaint_id: 'CC-260930106',
+    student_id: 'usr_student_kavin',
+    student_name: 'Kavin A M',
+    student_email: 'kavinam@karunya.edu.in',
+    anonymous: false,
+    location: 'Mechanical Sciences Block, Room MS-302',
+    title: 'Ceiling fan speed regulator replacement and motor bearing lubrication',
+    description:
+      'The speed regulator in MS-302 was burnt out and the fan was rattling violently during morning sessions. Technician inspected, replaced the stepped electronic regulator, and balanced the fan blades.',
+    category: 'Infrastructure',
+    priority: 'Medium',
+    department: 'Maintenance',
+    status: 'Resolved - Pending Approval',
+    sla_hours: 48,
+    sla_deadline: hoursFromNow(20),
+    created_at: hoursAgo(14),
+    updated_at: hoursAgo(1),
+    attachments: [],
+    critical: false,
+    assigned_to: 'usr_staff_rajesh',
+    assigned_name: 'Dr. Rajesh Kumar',
+    timeline: [
+      {
+        status: 'Assigned',
+        note: 'Assigned to Dr. Rajesh Kumar.',
+        at: hoursAgo(13),
+        author: 'Prof. M. Selvam',
+      },
+      {
+        status: 'In Progress',
+        note: 'Stepped regulator module requisitioned and installed.',
+        at: hoursAgo(5),
+        author: 'Dr. Rajesh Kumar',
+      },
+      {
+        status: 'Resolved - Pending Approval',
+        note: 'Field repair completed. Submitted for Department Head sign-off.',
+        at: hoursAgo(1),
+        author: 'Dr. Rajesh Kumar',
+      },
+    ],
+  },
+  {
+    complaint_id: 'CC-260930107',
+    student_id: 'usr_student_2',
+    student_name: 'Priya Dharshini',
+    student_email: 'priyadh@karunya.edu.in',
+    anonymous: false,
+    location: 'Science & Humanities Wing, Lift #2',
+    title: 'Science Block Passenger Lift #2 emergency alarm button loose contact',
+    description:
+      'The yellow emergency call bell in Lift 2 is physically depressed and does not chime the security desk. Requires immediate electrical terminal re-seating.',
+    category: 'Infrastructure',
+    priority: 'High',
+    department: 'Maintenance',
+    status: 'Pending',
+    sla_hours: 12,
+    sla_deadline: hoursFromNow(8),
+    created_at: hoursAgo(2),
+    updated_at: hoursAgo(2),
+    attachments: [],
+    critical: false,
+    assigned_to: '',
+    assigned_name: '',
+    timeline: [
+      {
+        status: 'Pending',
+        note: 'Submitted to Maintenance department unassigned pool.',
+        at: hoursAgo(2),
+        author: 'System',
+      },
+    ],
+  },
+  {
+    complaint_id: 'CC-260930108',
+    student_id: 'usr_student_3',
+    student_name: 'Arun Balaji',
+    student_email: 'arunb@karunya.edu.in',
+    anonymous: false,
+    location: 'University Central Auditorium & Convocation Hall',
+    title: 'Main auditorium diesel generator automated transfer switch fault',
+    description:
+      'During campus grid fluctuation tests, generator ATS panel failed to trigger within the mandatory 15-second window. Power dropped for 3 minutes before manual ignition.',
+    category: 'Infrastructure',
+    priority: 'Critical',
+    department: 'Maintenance',
+    status: 'Escalated',
+    sla_hours: 4,
+    sla_deadline: hoursAgo(3), // Overdue / breached!
+    created_at: hoursAgo(18),
+    updated_at: hoursAgo(2),
+    attachments: [],
+    critical: true,
+    assigned_to: 'usr_head_selvam',
+    assigned_name: 'Prof. M. Selvam',
+    timeline: [
+      {
+        status: 'Pending',
+        note: 'Complaint logged for auditorium power grid.',
+        at: hoursAgo(18),
+        author: 'System',
+      },
+      {
+        status: 'Escalated',
+        note: 'SLA breached (>4 hours). Escalated to Department Head for emergency contractor dispatch.',
+        at: hoursAgo(3),
+        author: 'SLA Engine',
       },
     ],
   },
@@ -858,6 +971,54 @@ export class CampusCareStorage {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }
+
+  // Recent QR Scans
+  static getRecentScans(): RecentScanItem[] {
+    return getFromStorage<RecentScanItem[]>(STORAGE_KEYS.RECENT_SCANS, [
+      {
+        complaint_id: 'CC-260930101',
+        title: 'Drinking water pipeline leakage and water cutoff in Block C',
+        location: 'Hostel Block C, 3rd Floor East Wing',
+        department: 'Hostel Maintenance',
+        priority: 'High',
+        status: 'Resolved',
+        scanned_at: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+      },
+      {
+        complaint_id: 'CC-260930106',
+        title: 'Ceiling fan speed regulator replacement and motor bearing lubrication',
+        location: 'Mechanical Sciences Block, Room MS-302',
+        department: 'Maintenance',
+        priority: 'Medium',
+        status: 'Resolved - Pending Approval',
+        scanned_at: new Date(Date.now() - 95 * 60 * 1000).toISOString(),
+      },
+    ]);
+  }
+
+  static addRecentScan(complaint: Complaint): void {
+    const list = this.getRecentScans().filter((item) => item.complaint_id !== complaint.complaint_id);
+    const newItem: RecentScanItem = {
+      complaint_id: complaint.complaint_id,
+      title: complaint.title,
+      location: complaint.location,
+      department: complaint.department,
+      priority: complaint.priority,
+      status: complaint.status,
+      scanned_at: new Date().toISOString(),
+    };
+    list.unshift(newItem);
+    saveToStorage(STORAGE_KEYS.RECENT_SCANS, list.slice(0, 20));
+  }
+
+  static removeRecentScan(complaintId: string): void {
+    const list = this.getRecentScans().filter((item) => item.complaint_id !== complaintId);
+    saveToStorage(STORAGE_KEYS.RECENT_SCANS, list);
+  }
+
+  static clearRecentScans(): void {
+    saveToStorage(STORAGE_KEYS.RECENT_SCANS, []);
   }
 
   // Reset to default factory state

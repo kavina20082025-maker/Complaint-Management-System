@@ -29,6 +29,7 @@ export type ComplaintStatus =
   | 'Pending'
   | 'Assigned'
   | 'In Progress'
+  | 'Resolved - Pending Approval'
   | 'Resolved'
   | 'Closed'
   | 'Reopened'
@@ -147,4 +148,14 @@ export interface AuditLog {
   complaint_id?: string;
   detail: string;
   created_at: string;
+}
+
+export interface RecentScanItem {
+  complaint_id: string;
+  title: string;
+  location: string;
+  department: string;
+  priority: string;
+  status: string;
+  scanned_at: string;
 }

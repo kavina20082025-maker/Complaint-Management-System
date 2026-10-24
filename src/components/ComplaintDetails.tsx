@@ -28,6 +28,7 @@ interface ComplaintDetailsProps {
   allUsers: User[];
   onBack: () => void;
   onUpdateComplaint: (updated: Complaint) => void;
+  onOpenScanner?: () => void;
 }
 
 export const ComplaintDetails: React.FC<ComplaintDetailsProps> = ({
@@ -36,6 +37,7 @@ export const ComplaintDetails: React.FC<ComplaintDetailsProps> = ({
   allUsers,
   onBack,
   onUpdateComplaint,
+  onOpenScanner,
 }) => {
   const [complaint, setComplaint] = useState<Complaint | undefined>(() =>
     CampusCareStorage.getComplaintById(complaintId)
@@ -319,6 +321,17 @@ export const ComplaintDetails: React.FC<ComplaintDetailsProps> = ({
             <QrCode className="w-3.5 h-3.5" />
             Inspection QR
           </button>
+
+          {onOpenScanner && (
+            <button
+              onClick={onOpenScanner}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
+              title="Open camera to scan another physical tag"
+            >
+              <QrCode className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              Scan Another Tag
+            </button>
+          )}
         </div>
       </div>
 
@@ -801,16 +814,227 @@ export const ComplaintDetails: React.FC<ComplaintDetailsProps> = ({
             </div>
           </div>
 
-          {/* Staff Workflow Actions Box */}
+          {/* Staff vs Head vs Admin Action Console */}
           {isStaffOrAdmin && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-              <div className="flex items-center gap-1.5 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <Shield className="w-4 h-4 text-indigo-500" />
-                <span className="text-xs font-bold text-slate-900 dark:text-white">
-                  Staff Action Console
-                </span>
+            <div
+              className={`bg-white dark:bg-slate-900 border rounded-xl p-5 shadow-xs space-y-4 ${
+                currentUser.role === 'department_head'
+                  ? 'border-violet-300 dark:border-violet-800'
+                  : currentUser.role === 'staff'
+                  ? 'border-indigo-300 dark:border-indigo-800'
+                  : 'border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {/* Console Header */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Shield
+                    className={`w-4 h-4 ${
+                      currentUser.role === 'department_head'
+                        ? 'text-violet-600'
+                        : 'text-indigo-600'
+                    }`}
+                  />
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {currentUser.role === 'department_head'
+                      ? 'Department Command Console'
+                      : currentUser.role === 'staff'
+                      ? 'My Desk — Staff Action'
+                      : 'Admin Console'}
+                  </span>
+                </div>
+                {currentUser.role === 'department_head' && (
+                  <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-violet-600 text-white rounded-md shadow-xs">
+                    HEAD
+                  </span>
+                )}
+                {currentUser.role === 'staff' && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-md border border-indigo-200 dark:border-indigo-800">
+                    STAFF
+                  </span>
+                )}
               </div>
 
+              {/* Head-Specific Approval Banner for "Resolved - Pending Approval" */}
+              {currentUser.role === 'department_head' && complaint.status === 'Resolved - Pending Approval' && (
+                <div className="p-3.5 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 space-y-2">
+                  <div className="text-xs font-bold text-violet-900 dark:text-violet-200 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-violet-600" />
+                    Approval Required from Department Head
+                  </div>
+                  <p className="text-[11px] text-violet-700 dark:text-violet-300">
+                    Officer {complaint.assigned_name || 'Staff'} marked this issue as resolved. Inspect and decide:
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nowIso = new Date().toISOString();
+                        const updated: Complaint = {
+                          ...complaint,
+                          status: 'Closed',
+                          verified: true,
+                          verified_at: nowIso,
+                          verification_note: `Approved & Closed by Department Head ${currentUser.name}.`,
+                          updated_at: nowIso,
+                          timeline: [
+                            ...complaint.timeline,
+                            {
+                              status: 'Closed',
+                              note: `Resolution APPROVED & CLOSED by Head ${currentUser.name}.`,
+                              at: nowIso,
+                              author: currentUser.name,
+                            },
+                          ],
+                        };
+                        CampusCareStorage.updateComplaint(updated);
+                        CampusCareStorage.addAuditLog(
+                          currentUser.id,
+                          currentUser.email,
+                          'HEAD_APPROVED_AND_CLOSED',
+                          complaint.complaint_id,
+                          `Approved by ${currentUser.name}`
+                        );
+                        setComplaint(updated);
+                        onUpdateComplaint(updated);
+                      }}
+                      className="flex-1 py-1.5 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const reason = window.prompt('Specify rework reason for rejection:', 'Work did not pass inspection');
+                        if (!reason) return;
+                        const nowIso = new Date().toISOString();
+                        const updated: Complaint = {
+                          ...complaint,
+                          status: 'In Progress',
+                          updated_at: nowIso,
+                          timeline: [
+                            ...complaint.timeline,
+                            {
+                              status: 'In Progress',
+                              note: `REJECTED BY HEAD: "${reason}". Returned to assigned officer for rework.`,
+                              at: nowIso,
+                              author: currentUser.name,
+                            },
+                          ],
+                        };
+                        CampusCareStorage.updateComplaint(updated);
+                        CampusCareStorage.addAuditLog(
+                          currentUser.id,
+                          currentUser.email,
+                          'HEAD_REJECTED_RESOLUTION',
+                          complaint.complaint_id,
+                          reason
+                        );
+                        setComplaint(updated);
+                        onUpdateComplaint(updated);
+                      }}
+                      className="flex-1 py-1.5 px-3 text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 rounded-lg transition-colors flex items-center justify-center gap-1"
+                    >
+                      <XCircle className="w-3.5 h-3.5" /> Reject / Reopen
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Staff-Specific Quick Actions (Claim unassigned, Start Work, Resolve - Pending Approval) */}
+              {currentUser.role === 'staff' && (
+                <div className="space-y-2">
+                  {!complaint.assigned_to && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nowIso = new Date().toISOString();
+                        const updated: Complaint = {
+                          ...complaint,
+                          assigned_to: currentUser.id,
+                          assigned_name: currentUser.name,
+                          status: 'Assigned',
+                          updated_at: nowIso,
+                          timeline: [
+                            ...complaint.timeline,
+                            {
+                              status: 'Assigned',
+                              note: `Claimed by ${currentUser.name}.`,
+                              at: nowIso,
+                              author: currentUser.name,
+                            },
+                          ],
+                        };
+                        CampusCareStorage.updateComplaint(updated);
+                        CampusCareStorage.addAuditLog(
+                          currentUser.id,
+                          currentUser.email,
+                          'CLAIMED_TICKET',
+                          complaint.complaint_id,
+                          `Claimed by ${currentUser.name}`
+                        );
+                        setComplaint(updated);
+                        onUpdateComplaint(updated);
+                      }}
+                      className="w-full py-2 px-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Claim Unassigned Complaint
+                    </button>
+                  )}
+
+                  {complaint.assigned_to === currentUser.id && complaint.status === 'Assigned' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nowIso = new Date().toISOString();
+                        const updated: Complaint = {
+                          ...complaint,
+                          status: 'In Progress',
+                          updated_at: nowIso,
+                          timeline: [
+                            ...complaint.timeline,
+                            {
+                              status: 'In Progress',
+                              note: `Work started by ${currentUser.name}.`,
+                              at: nowIso,
+                              author: currentUser.name,
+                            },
+                          ],
+                        };
+                        CampusCareStorage.updateComplaint(updated);
+                        CampusCareStorage.addAuditLog(
+                          currentUser.id,
+                          currentUser.email,
+                          'STARTED_WORK',
+                          complaint.complaint_id,
+                          `Work started by ${currentUser.name}`
+                        );
+                        setComplaint(updated);
+                        onUpdateComplaint(updated);
+                      }}
+                      className="w-full py-2 px-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      Start Work (Mark In Progress)
+                    </button>
+                  )}
+
+                  {complaint.assigned_to === currentUser.id && complaint.status === 'In Progress' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStatus('Resolved - Pending Approval');
+                      }}
+                      className="w-full py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <FileCheck className="w-4 h-4" />
+                      Mark "Resolved - Pending Approval"
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Status Update Form */}
               <form onSubmit={handleUpdateStatus} className="space-y-3 text-xs">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -821,36 +1045,57 @@ export const ComplaintDetails: React.FC<ComplaintDetailsProps> = ({
                     onChange={(e) => setSelectedStatus(e.target.value as ComplaintStatus)}
                     className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-hidden"
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Assigned">Assigned</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved (triggers student verify)</option>
-                    <option value="Escalated">Escalated</option>
-                    <option value="Closed">Closed</option>
-                    <option value="Reopened">Reopened</option>
+                    {currentUser.role === 'staff' ? (
+                      <>
+                        <option value="Assigned">Assigned</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved - Pending Approval">
+                          Resolved - Pending Approval
+                        </option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Pending">Pending</option>
+                        <option value="Assigned">Assigned</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved - Pending Approval">
+                          Resolved - Pending Approval
+                        </option>
+                        <option value="Closed">Closed</option>
+                        <option value="Reopened">Reopened</option>
+                        <option value="Escalated">Escalated</option>
+                      </>
+                    )}
                   </select>
+                  {currentUser.role === 'staff' && (
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      * Staff can submit "Resolved - Pending Approval". Final ticket closure is approved by Department Head.
+                    </p>
+                  )}
                 </div>
 
-                {/* Reassignment to colleague if needed */}
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Reassign Duty Officer
-                  </label>
-                  <select
-                    value={reassignStaffId}
-                    onChange={(e) => setReassignStaffId(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-hidden"
-                  >
-                    <option value="">Keep current assignee ({complaint.assigned_name || 'Unassigned'})</option>
-                    {allUsers
-                      .filter((u) => u.active && (u.role === 'staff' || u.role === 'department_head'))
-                      .map((staff) => (
-                        <option key={staff.id} value={staff.id}>
-                          {staff.name} ({staff.department})
-                        </option>
-                      ))}
-                  </select>
-                </div>
+                {/* Head Login: Assign / Reassign dropdown (Staff CANNOT reassign others) */}
+                {(currentUser.role === 'department_head' || currentUser.role === 'admin') && (
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Assign / Reassign Officer
+                    </label>
+                    <select
+                      value={reassignStaffId}
+                      onChange={(e) => setReassignStaffId(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-hidden"
+                    >
+                      <option value="">Keep current assignee ({complaint.assigned_name || 'Unassigned'})</option>
+                      {allUsers
+                        .filter((u) => u.active && (u.role === 'staff' || u.role === 'department_head'))
+                        .map((staff) => (
+                          <option key={staff.id} value={staff.id}>
+                            {staff.name} ({staff.department}) {staff.id === currentUser.id ? '(Me)' : ''}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Canned Response Template Shortcut */}
                 <div>
@@ -882,14 +1127,22 @@ export const ComplaintDetails: React.FC<ComplaintDetailsProps> = ({
                     rows={3}
                     value={statusNote}
                     onChange={(e) => setStatusNote(e.target.value)}
-                    placeholder="Enter inspection findings, replacement parts, or resolution confirmation..."
+                    placeholder={
+                      currentUser.role === 'staff'
+                        ? 'Describe on-site work done, parts replaced, or testing...'
+                        : 'Enter departmental supervision directives or approval notes...'
+                    }
                     className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-2 px-3 text-xs font-semibold text-white bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-500 rounded-lg transition-colors shadow-xs"
+                  className={`w-full py-2 px-3 text-xs font-semibold text-white rounded-lg transition-colors shadow-xs ${
+                    currentUser.role === 'department_head'
+                      ? 'bg-violet-600 hover:bg-violet-700'
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                  }`}
                 >
                   Commit Status & Update Timeline
                 </button>
@@ -901,7 +1154,11 @@ export const ComplaintDetails: React.FC<ComplaintDetailsProps> = ({
 
       {/* QR Code Inspection Modal */}
       {showQrModal && (
-        <QrCodeModal complaint={complaint} onClose={() => setShowQrModal(false)} />
+        <QrCodeModal
+          complaint={complaint}
+          onClose={() => setShowQrModal(false)}
+          onOpenScanner={onOpenScanner}
+        />
       )}
     </div>
   );

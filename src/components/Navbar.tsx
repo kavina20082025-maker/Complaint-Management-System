@@ -7,6 +7,8 @@ import {
   Check,
   RotateCcw,
   Sparkles,
+  QrCode,
+  Menu,
 } from 'lucide-react';
 import { User, NotificationItem } from '../types';
 import { CampusCareStorage } from '../services/storage';
@@ -21,6 +23,8 @@ interface NavbarProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onSelectComplaint?: (cid: string) => void;
+  onOpenScanner?: () => void;
+  onToggleMobileMenu?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -33,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   theme,
   onToggleTheme,
   onSelectComplaint,
+  onOpenScanner,
+  onToggleMobileMenu,
 }) => {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
@@ -58,11 +64,27 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  const isStudent = currentUser.role === 'student';
+  const isStaff = currentUser.role === 'staff';
+  const isDeptHead = currentUser.role === 'department_head';
+  const isAdmin = currentUser.role === 'admin';
+
   return (
     <header className="sticky top-0 z-40 w-full h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between gap-4">
-        {/* Zone 1: Brand title (One line wordmark in display face) */}
-        <div className="flex items-center gap-3">
+        {/* Zone 1: Mobile Hamburger & Brand title */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {onToggleMobileMenu && (
+            <button
+              onClick={onToggleMobileMenu}
+              className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Open sidebar menu"
+              title="Open Navigation Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+
           <button
             onClick={() => onNavigate('dashboard')}
             className="flex items-center gap-2.5 text-left group focus:outline-hidden"
@@ -70,65 +92,215 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-indigo-600 flex items-center justify-center text-white font-black text-sm tracking-tighter shadow-xs">
               CC
             </div>
-            <span className="text-lg font-extrabold tracking-tight text-slate-950 dark:text-white">
-              Campus<span className="text-indigo-600 dark:text-indigo-400">Care</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-base sm:text-lg font-extrabold tracking-tight text-slate-950 dark:text-white leading-tight">
+                Campus<span className="text-indigo-600 dark:text-indigo-400">Care</span>
+              </span>
+              <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest hidden sm:block">
+                {isStudent
+                  ? 'Student Portal'
+                  : isStaff
+                  ? `${currentUser.department} Staff`
+                  : isDeptHead
+                  ? `${currentUser.department} HQ`
+                  : 'System Administration'}
+              </span>
+            </div>
           </button>
         </div>
 
-        {/* Zone 2: Navigation Links (Text with subtle hover underline) */}
-        <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
-          <button
-            onClick={() => onNavigate('dashboard')}
-            className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
-              currentView === 'dashboard'
-                ? 'text-slate-950 dark:text-white border-b-2 border-slate-900 dark:border-indigo-400 font-semibold'
-                : ''
-            }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => onNavigate('status-board')}
-            className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
-              currentView === 'status-board'
-                ? 'text-slate-950 dark:text-white border-b-2 border-slate-900 dark:border-indigo-400 font-semibold'
-                : ''
-            }`}
-          >
-            Status Board
-          </button>
-          <button
-            onClick={() => onNavigate('search')}
-            className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
-              currentView === 'search'
-                ? 'text-slate-950 dark:text-white border-b-2 border-slate-900 dark:border-indigo-400 font-semibold'
-                : ''
-            }`}
-          >
-            Search & Filter
-          </button>
-          <button
-            onClick={() => onNavigate('services')}
-            className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
-              currentView === 'services'
-                ? 'text-slate-950 dark:text-white border-b-2 border-slate-900 dark:border-indigo-400 font-semibold'
-                : ''
-            }`}
-          >
-            Service Desks
-          </button>
-          <button
-            onClick={() => onNavigate('assistant')}
-            className={`inline-flex items-center gap-1.5 transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
-              currentView === 'assistant'
-                ? 'text-slate-950 dark:text-white border-b-2 border-slate-900 dark:border-indigo-400 font-semibold'
-                : ''
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-            AI Assistant
-          </button>
+        {/* Zone 2: Navigation Links (Tailored per role) */}
+        <nav className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          {isStudent && (
+            <>
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'dashboard'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : ''
+                }`}
+              >
+                My Dashboard
+              </button>
+              <button
+                onClick={() => onNavigate('status-board')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'status-board'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : ''
+                }`}
+              >
+                Status Board
+              </button>
+              <button
+                onClick={() => onNavigate('search')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'search'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : ''
+                }`}
+              >
+                Search
+              </button>
+              <button
+                onClick={() => onNavigate('services')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'services'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : ''
+                }`}
+              >
+                Service Desks
+              </button>
+              <button
+                onClick={() => onNavigate('assistant')}
+                className={`inline-flex items-center gap-1.5 transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'assistant'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-purple-600 dark:border-purple-400'
+                    : ''
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                AI Assistant
+              </button>
+            </>
+          )}
+
+          {isStaff && (
+            <>
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'dashboard'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-indigo-600 dark:border-indigo-400'
+                    : ''
+                }`}
+              >
+                My Desk
+              </button>
+              <button
+                onClick={() => onNavigate('work-queue')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'work-queue'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-indigo-600 dark:border-indigo-400'
+                    : ''
+                }`}
+              >
+                Unassigned Pool
+              </button>
+              <button
+                onClick={() => onNavigate('maintenance')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'maintenance'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-indigo-600 dark:border-indigo-400'
+                    : ''
+                }`}
+              >
+                Maintenance Log
+              </button>
+              <button
+                onClick={() => onNavigate('search')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'search'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-indigo-600 dark:border-indigo-400'
+                    : ''
+                }`}
+              >
+                Dept Search
+              </button>
+            </>
+          )}
+
+          {isDeptHead && (
+            <>
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'dashboard'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-violet-600 dark:border-violet-400'
+                    : ''
+                }`}
+              >
+                Command Center (HQ)
+              </button>
+              <button
+                onClick={() => onNavigate('sla-warning')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'sla-warning'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-rose-600 dark:border-rose-400'
+                    : ''
+                }`}
+              >
+                SLA Warnings
+              </button>
+              <button
+                onClick={() => onNavigate('work-queue')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'work-queue'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-violet-600 dark:border-violet-400'
+                    : ''
+                }`}
+              >
+                Dispatch Queue
+              </button>
+              <button
+                onClick={() => onNavigate('analytics')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'analytics'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-violet-600 dark:border-violet-400'
+                    : ''
+                }`}
+              >
+                Dept Analytics
+              </button>
+            </>
+          )}
+
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'dashboard'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-amber-600 dark:border-amber-400'
+                    : ''
+                }`}
+              >
+                Global HQ
+              </button>
+              <button
+                onClick={() => onNavigate('admin-command')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'admin-command'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-amber-600 dark:border-amber-400'
+                    : ''
+                }`}
+              >
+                Command Center
+              </button>
+              <button
+                onClick={() => onNavigate('sla-warning')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'sla-warning'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-rose-600 dark:border-rose-400'
+                    : ''
+                }`}
+              >
+                SLA Center
+              </button>
+              <button
+                onClick={() => onNavigate('users')}
+                className={`transition-colors hover:text-slate-950 dark:hover:text-white pb-0.5 ${
+                  currentView === 'users'
+                    ? 'text-slate-950 dark:text-white border-b-2 border-amber-600 dark:border-amber-400'
+                    : ''
+                }`}
+              >
+                User Directory
+              </button>
+            </>
+          )}
         </nav>
 
         {/* Zone 3: Primary Actions (CTA, Switcher, Theme, Notifications) */}
@@ -140,6 +312,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="hidden sm:inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-500 rounded-lg transition-colors whitespace-nowrap shadow-xs"
             >
               Report Grievance
+            </button>
+          )}
+
+          {/* QR Scanner Trigger */}
+          {onOpenScanner && (
+            <button
+              onClick={onOpenScanner}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 shadow-2xs"
+              title="Scan physical inspection QR tag with camera"
+            >
+              <QrCode className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Scan QR</span>
             </button>
           )}
 
@@ -243,8 +427,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               )}
               <div className="hidden sm:block leading-none">
-                <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                  {currentUser.name.split(' ')[0]}
+                <div className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>{currentUser.name.split(' ')[0]}</span>
+                  {currentUser.role === 'department_head' && (
+                    <span className="px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider bg-violet-600 text-white rounded-sm shadow-xs">
+                      HEAD
+                    </span>
+                  )}
+                  {currentUser.role === 'staff' && (
+                    <span className="px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-sm">
+                      STAFF
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                   {getRoleBadgeTitle(currentUser.role)}
@@ -275,8 +469,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
                     >
                       <div>
-                        <div className="font-semibold text-slate-900 dark:text-white">
-                          {user.name}
+                        <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span>{user.name}</span>
+                          {user.role === 'department_head' && (
+                            <span className="px-1 py-0.2 text-[9px] font-black uppercase tracking-wider bg-violet-600 text-white rounded-xs">
+                              HEAD
+                            </span>
+                          )}
+                          {user.role === 'staff' && (
+                            <span className="px-1 py-0.2 text-[9px] font-bold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded-xs">
+                              STAFF
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400">
                           {getRoleBadgeTitle(user.role)} · {user.department}

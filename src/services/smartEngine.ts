@@ -326,11 +326,11 @@ export function getSlaStatus(deadlineIso: string, status: string): {
   formatted: string;
   totalHoursRemaining: number;
 } {
-  if (status === 'Resolved' || status === 'Closed') {
+  if (status === 'Resolved' || status === 'Closed' || status === 'Resolved - Pending Approval') {
     return {
       isOverdue: false,
       isApproaching: false,
-      formatted: 'Completed within SLA',
+      formatted: status === 'Resolved - Pending Approval' ? 'Resolved (Pending Approval)' : 'Completed within SLA',
       totalHoursRemaining: 999,
     };
   }

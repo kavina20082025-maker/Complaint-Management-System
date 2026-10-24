@@ -18,24 +18,50 @@
     <!-- Top Navigation Bar -->
     <header class="topbar">
       <div class="topbar-container">
-        <!-- Brand Wordmark -->
-        <button class="brand-lockup" data-view="dashboard" aria-label="CampusCare Home">
-          <div class="brand-icon">CC</div>
-          <div class="brand-name">Campus<span>Care</span></div>
-        </button>
+        <!-- Mobile Sidebar Hamburger Toggle & Brand Wordmark -->
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button id="mobile-sidebar-toggle" class="btn-icon mobile-menu-btn" title="Toggle Navigation Menu" aria-label="Toggle Navigation Menu">
+            ☰
+          </button>
+          <button class="brand-lockup" data-view="dashboard" aria-label="CampusCare Home">
+            <div class="brand-icon">CC</div>
+            <div class="brand-name">Campus<span>Care</span></div>
+          </button>
+        </div>
 
-        <!-- Top Nav Links -->
+        <!-- Top Nav Links (Dynamically filtered by active user role) -->
         <nav class="topbar-nav" id="topbar-nav">
-          <button class="nav-link active" data-view="dashboard">Overview</button>
-          <button class="nav-link" data-view="status-board">Status Board</button>
+          <!-- Student Links -->
+          <button class="nav-link active role-nav-student" data-view="dashboard">Live Overview</button>
+          <button class="nav-link role-nav-student" data-view="student-hub">🎓 Student Hub</button>
+          <button class="nav-link role-nav-student" data-view="submit">✍️ New Grievance</button>
+          <button class="nav-link role-nav-student" data-view="status-board">Live Status</button>
+          <button class="nav-link role-nav-student" data-view="emergency" style="color: #dc2626; font-weight: 700;">🚨 SOS</button>
+
+          <!-- Staff Specialist Links -->
+          <button class="nav-link role-nav-staff" data-view="staff-workstation">🛠️ Faculty Workstation</button>
+          <button class="nav-link role-nav-staff" data-view="work-queue">📥 Duty Work Queue</button>
+          <button class="nav-link role-nav-staff" data-view="maintenance">🔧 Maintenance Windows</button>
+          <button class="nav-link role-nav-staff" data-view="assistant">🤖 AI Policy Guide</button>
+
+          <!-- Dept Head Links -->
+          <button class="nav-link role-nav-head" data-view="hod-console">👔 HOD Console</button>
+          <button class="nav-link role-nav-head" data-view="sla-warning">⏱️ SLA Warnings</button>
+          <button class="nav-link role-nav-head" data-view="analytics">📈 Trends & SLA</button>
+          <button class="nav-link role-nav-head" data-view="work-queue">📥 Duty Queue</button>
+
+          <!-- Admin Links -->
+          <button class="nav-link role-nav-admin" data-view="admin-command">🛡️ Command Center</button>
+          <button class="nav-link role-nav-admin" data-view="users">👥 User Management</button>
+          <button class="nav-link role-nav-admin" data-view="audit">📜 Audit Trail</button>
+
+          <!-- Shared Link -->
           <button class="nav-link" data-view="search">Search & Filter</button>
-          <button class="nav-link" data-view="services">Service Desks</button>
-          <button class="nav-link" data-view="assistant">AI Assistant</button>
         </nav>
 
         <!-- Top Actions -->
         <div class="topbar-actions">
-          <button class="btn btn-primary btn-sm role-student-only" data-view="submit">
+          <button class="btn btn-primary btn-sm" data-view="submit">
             + Report Grievance
           </button>
 
@@ -44,11 +70,22 @@
             ◐
           </button>
 
-          <!-- Notification Bell -->
-          <button id="header-notif-btn" class="btn-icon" data-view="dashboard" title="Notifications" aria-label="Notifications">
-            🔔
-            <span id="notif-badge-dot" class="badge-dot" style="display: none;"></span>
-          </button>
+          <!-- Notification Bell & Drawer Container -->
+          <div style="position: relative;">
+            <button id="header-notif-btn" class="btn-icon" title="Notifications" aria-label="Notifications">
+              🔔
+              <span id="notif-badge-dot" class="badge-dot" style="display: none;"></span>
+            </button>
+            <div id="notif-drawer" class="notif-drawer" style="display: none;">
+              <div class="notif-header">
+                <div style="font-weight: 800; font-size: 0.82rem; color: var(--text);">Notifications</div>
+                <button id="notif-mark-read-btn" class="btn-link" style="font-size: 0.7rem; color: var(--primary); background: none; border: none; cursor: pointer;">Mark all read</button>
+              </div>
+              <div id="notif-list" class="notif-list">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+          </div>
 
           <!-- Guest Auth Actions (when signed out) -->
           <div id="header-auth-guest" style="display: none; align-items: center; gap: 0.5rem;">
@@ -76,31 +113,54 @@
       </div>
     </header>
 
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
     <!-- App Shell: Sidebar + Main Viewport -->
     <div class="app-shell" id="app-shell">
       <!-- Sidebar -->
       <aside class="app-sidebar" id="app-sidebar">
-        <!-- Group 1: General -->
-        <div>
-          <div class="side-group-title">Navigation</div>
+        <!-- Mobile Sidebar Close Button -->
+        <button id="mobile-sidebar-close" class="mobile-sidebar-close" aria-label="Close Navigation Sidebar">&times;</button>
+
+        <!-- Role Header Badge (Indicates Current Role Context) -->
+        <div id="sidebar-role-badge" class="sidebar-role-badge">
+          <!-- Dynamically populated with Student / Staff / Dept Head context -->
+        </div>
+
+        <!-- Group 1: Student Redressal (VISIBLE ONLY TO STUDENTS) -->
+        <div id="side-group-student" class="sidebar-role-group" data-role="student">
+          <div class="side-group-title">🎓 Student Redressal Portal</div>
           <div class="side-menu">
             <button class="side-link active" data-view="dashboard">
-              <div class="side-link-inner"><span>📊</span> <span>Dashboard</span></div>
+              <div class="side-link-inner"><span>📊</span> <span>Live Overview</span></div>
             </button>
-            <button class="side-link role-student-only" data-view="submit">
+            <button class="side-link" data-view="student-hub">
+              <div class="side-link-inner"><span>🎓</span> <span>Student Hub</span></div>
+            </button>
+            <button class="side-link" data-view="submit">
               <div class="side-link-inner"><span>✍️</span> <span>New Grievance</span></div>
             </button>
             <button class="side-link" data-view="status-board">
               <div class="side-link-inner"><span>⚡</span> <span>Live Status Board</span></div>
             </button>
+            <button class="side-link" data-view="compensation">
+              <div class="side-link-inner"><span>💰</span> <span>Fee Compensation</span></div>
+            </button>
+            <button class="side-link" data-view="ombudsman">
+              <div class="side-link-inner"><span>🏛️</span> <span>Ombudsman Appeals</span></div>
+            </button>
+            <button class="side-link" data-view="dossier">
+              <div class="side-link-inner"><span>📜</span> <span>Resolution Dossier</span></div>
+            </button>
+            <button class="side-link" data-view="emergency" style="color: #dc2626;">
+              <div class="side-link-inner"><span style="animation: pulse 2s infinite;">🚨</span> <span style="font-weight: 700; color: #dc2626;">Emergency SOS</span></div>
+            </button>
+            <button class="side-link" data-view="polls">
+              <div class="side-link-inner"><span>🗳️</span> <span>Campus Polls</span></div>
+            </button>
             <button class="side-link" data-view="search">
-              <div class="side-link-inner"><span>🔍</span> <span>Search & Filters</span></div>
-            </button>
-            <button class="side-link" data-view="watchlist">
-              <div class="side-link-inner"><span>⭐</span> <span>My Watchlist</span></div>
-            </button>
-            <button class="side-link" data-view="announcements">
-              <div class="side-link-inner"><span>📢</span> <span>Campus Notices</span></div>
+              <div class="side-link-inner"><span>🔍</span> <span>Search Grievances</span></div>
             </button>
             <button class="side-link" data-view="services">
               <div class="side-link-inner"><span>🏛️</span> <span>Service Directory</span></div>
@@ -108,34 +168,65 @@
           </div>
         </div>
 
-        <!-- Group 2: Operations -->
-        <div>
-          <div class="side-group-title">Operations</div>
+        <!-- Group 2: Operations & Responders (VISIBLE ONLY TO STAFF) -->
+        <div id="side-group-staff" class="sidebar-role-group" data-role="staff">
+          <div class="side-group-title">🛠️ Faculty & Staff Field Desk</div>
           <div class="side-menu">
+            <button class="side-link" data-view="staff-workstation">
+              <div class="side-link-inner"><span>🛠️</span> <span>Faculty Workstation</span></div>
+            </button>
+            <button class="side-link" data-view="work-queue">
+              <div class="side-link-inner"><span>📥</span> <span>Duty Work Queue</span></div>
+            </button>
+            <button class="side-link" data-view="maintenance">
+              <div class="side-link-inner"><span>🔧</span> <span>Maintenance Windows</span></div>
+            </button>
             <button class="side-link" data-view="assistant">
               <div class="side-link-inner"><span>🤖</span> <span>AI Policy Guide</span></div>
             </button>
-            <button class="side-link role-staff-only" data-view="work-queue">
-              <div class="side-link-inner"><span>📥</span> <span>Duty Work Queue</span></div>
+            <button class="side-link" data-view="search">
+              <div class="side-link-inner"><span>🔍</span> <span>Dept Issue Search</span></div>
             </button>
-            <button class="side-link role-staff-only" data-view="sla-warning">
-              <div class="side-link-inner"><span>⏱️</span> <span>SLA Center</span></div>
-            </button>
-            <button class="side-link role-staff-only" data-view="maintenance">
-              <div class="side-link-inner"><span>🔧</span> <span>Maintenance</span></div>
-            </button>
-            <button class="side-link role-staff-only" data-view="analytics">
-              <div class="side-link-inner"><span>📈</span> <span>Trends & SLA</span></div>
+            <button class="side-link" data-view="announcements">
+              <div class="side-link-inner"><span>📢</span> <span>Campus Notices</span></div>
             </button>
           </div>
         </div>
 
-        <!-- Group 3: Admin -->
-        <div class="role-admin-only">
-          <div class="side-group-title">Administration</div>
+        <!-- Group 3: Department Supervision (VISIBLE ONLY TO DEPT HEADS) -->
+        <div id="side-group-head" class="sidebar-role-group" data-role="department_head">
+          <div class="side-group-title">👔 Dept Head Supervision</div>
+          <div class="side-menu">
+            <button class="side-link" data-view="hod-console">
+              <div class="side-link-inner"><span>👔</span> <span>HOD Command Console</span></div>
+            </button>
+            <button class="side-link" data-view="sla-warning">
+              <div class="side-link-inner"><span>⏱️</span> <span>SLA Warnings</span></div>
+            </button>
+            <button class="side-link" data-view="analytics">
+              <div class="side-link-inner"><span>📈</span> <span>Trends & SLA</span></div>
+            </button>
+            <button class="side-link" data-view="work-queue">
+              <div class="side-link-inner"><span>📥</span> <span>Staff Duty Dispatch</span></div>
+            </button>
+            <button class="side-link" data-view="maintenance">
+              <div class="side-link-inner"><span>🔧</span> <span>Maintenance Windows</span></div>
+            </button>
+            <button class="side-link" data-view="search">
+              <div class="side-link-inner"><span>🔍</span> <span>Department Catalog</span></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Group 4: Administration & Exploration (VISIBLE ONLY TO ADMINS) -->
+        <div id="side-group-admin" class="sidebar-role-group" data-role="admin">
+          <div class="side-group-title">Administration & Campus</div>
           <div class="side-menu">
             <button class="side-link" data-view="admin-command">
               <div class="side-link-inner"><span>🛡️</span> <span>Command Center</span></div>
+            </button>
+            <button class="side-link" data-view="heatmap">
+              <div class="side-link-inner"><span>🗺️</span> <span>Campus Heatmap</span></div>
             </button>
             <button class="side-link" data-view="users">
               <div class="side-link-inner"><span>👥</span> <span>User Management</span></div>
@@ -143,11 +234,26 @@
             <button class="side-link" data-view="audit">
               <div class="side-link-inner"><span>📜</span> <span>Audit Trail</span></div>
             </button>
+            <button class="side-link" data-view="sla-warning">
+              <div class="side-link-inner"><span>⏱️</span> <span>SLA Warnings</span></div>
+            </button>
+            <button class="side-link" data-view="analytics">
+              <div class="side-link-inner"><span>📈</span> <span>Trends & SLA</span></div>
+            </button>
+            <button class="side-link" data-view="search">
+              <div class="side-link-inner"><span>🔍</span> <span>Search & Filters</span></div>
+            </button>
+            <button class="side-link" data-view="services">
+              <div class="side-link-inner"><span>🏛️</span> <span>Service Directory</span></div>
+            </button>
+            <button class="side-link" data-view="announcements">
+              <div class="side-link-inner"><span>📢</span> <span>Notices</span></div>
+            </button>
           </div>
         </div>
 
         <!-- Account -->
-        <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border);">
+        <div id="side-group-account" style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border);">
           <div class="side-group-title">Account</div>
           <div class="side-menu">
             <button class="side-link" data-view="profile" id="side-link-profile">
@@ -355,7 +461,10 @@
             <h2 id="hero-title">Welcome to CampusCare 👋</h2>
             <p>Report campus issues, track live SLA countdowns, engage with administrative duty officers, and verify resolutions before final closure.</p>
             <div class="hero-actions">
-              <button class="btn btn-light role-student-only" data-view="submit">+ Report Grievance</button>
+              <button class="btn btn-light" data-view="submit">+ Report Grievance</button>
+              <button class="btn btn-light" data-view="student-hub">🎓 Student Hub</button>
+              <button class="btn btn-light" data-view="staff-workstation">🛠️ Faculty Desk</button>
+              <button class="btn btn-light" data-view="hod-console">👔 HOD Console</button>
               <button class="btn btn-outline" data-view="status-board" style="color: #000000; background: #ffffff; border: 1px solid #cbd5e1;">Live Status Board</button>
             </div>
           </div>
@@ -386,6 +495,27 @@
               <div class="kpi-label">Critical Priority</div>
               <div id="kpi-critical" class="kpi-value font-mono" style="color: var(--danger);">0</div>
               <div class="kpi-sub">Urgent 4h SLA</div>
+            </div>
+          </div>
+
+          <!-- Live Dashboard Graphical Analysis -->
+          <div class="chart-card" style="margin-bottom: 1.5rem;">
+            <div class="chart-header">
+              <div>
+                <div class="kicker">Live Redressal Analytics</div>
+                <h3 class="chart-title">Inflow & SLA Resolution Graph</h3>
+                <p class="chart-subtitle">Real-time daily grievance trajectory and SLA turnaround performance</p>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <div class="btn-group" style="display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;">
+                  <button type="button" id="dash-graph-line-btn" class="btn btn-sm btn-outline active" style="padding: 0.35rem 0.65rem; font-size: 0.74rem;">📈 Trend Curve</button>
+                  <button type="button" id="dash-graph-bar-btn" class="btn btn-sm btn-outline" style="padding: 0.35rem 0.65rem; font-size: 0.74rem;">📊 SLA Compliance</button>
+                </div>
+                <button class="btn btn-primary btn-sm" data-view="analytics" style="font-size: 0.75rem;">Full Graphical Analysis ➔</button>
+              </div>
+            </div>
+            <div id="dashboard-graph-container" style="min-height: 200px;">
+              <!-- Injected by JS -->
             </div>
           </div>
 
@@ -435,7 +565,7 @@
 
               <div class="form-group">
                 <label class="form-label">Detailed Description *</label>
-                <textarea id="intake-desc" rows="6" class="form-textarea" placeholder="Explain what occurred, room number, how long it has persisted, and affected students..." required></textarea>
+                <textarea id="intake-desc" rows="5" class="form-textarea" placeholder="Explain what occurred, room number, how long it has persisted, and affected students..." required></textarea>
               </div>
 
               <div class="form-group">
@@ -501,11 +631,13 @@
 
         <!-- VIEW 3: COMPLAINT DETAILS & RESOLUTION LOOP -->
         <section id="view-complaint-detail" class="app-view">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
             <button class="btn btn-outline btn-sm" data-view="dashboard">← Back to Overview</button>
-            <div style="display: flex; gap: 0.5rem;">
-              <button id="detail-watch-btn" class="btn btn-outline btn-sm">☆ Watch Ticket</button>
-              <button id="detail-qr-btn" class="btn btn-outline btn-sm">Inspection QR Code</button>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button id="detail-affected-btn" class="btn btn-outline btn-sm" title="Indicate that this issue also impacts you">👥 +1 Affected (<span id="detail-affected-count">1</span>)</button>
+              <button id="detail-dossier-btn" class="btn btn-outline btn-sm">📜 Dossier</button>
+              <button id="detail-watch-btn" class="btn btn-outline btn-sm">☆ Watch</button>
+              <button id="detail-qr-btn" class="btn btn-outline btn-sm">QR Code</button>
             </div>
           </div>
 
@@ -575,6 +707,12 @@
               <div class="card" style="margin-bottom: 1.25rem;">
                 <h3 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase; color: var(--text-muted);">Problem Description</h3>
                 <p id="detail-desc" style="font-size: 0.82rem; line-height: 1.6; white-space: pre-line;">Description text here...</p>
+              </div>
+
+              <!-- Evidence Photos Gallery -->
+              <div id="detail-evidence-card" class="card" style="margin-bottom: 1.25rem; display: none;">
+                <h3 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase; color: var(--text-muted);">📸 Attached Evidence & Inspection Photos</h3>
+                <div id="detail-evidence-gallery" class="evidence-grid"></div>
               </div>
 
               <!-- Timeline -->
@@ -1031,11 +1169,96 @@
         <!-- VIEW 17: PROFILE -->
         <section id="view-profile" class="app-view">
           <div class="view-header">
-            <div class="kicker">Account</div>
-            <h1 class="view-title">My Profile & Data Privacy</h1>
-            <p class="view-subtitle">Review institutional identity details, manage contact points, or export your complete privacy record.</p>
+            <div class="kicker">Institutional Account</div>
+            <h1 class="view-title">My Profile & Identity Management</h1>
+            <p class="view-subtitle">Manage your profile picture, institutional identity pass, verified contact information, and privacy records.</p>
           </div>
+
+          <!-- Profile Photo & Identity Pass Grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;" class="profile-hero-grid">
+            <!-- Profile Photo Upload Card -->
+            <div class="card" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1.75rem 1.25rem;">
+              <div style="position: relative; margin-bottom: 1rem;">
+                <div id="profile-avatar-preview" class="profile-avatar-large">
+                  <!-- Dynamically populated with image or initials -->
+                  <span>K</span>
+                </div>
+                <label for="profile-photo-input" class="avatar-edit-badge" title="Change Photo">
+                  📷
+                </label>
+                <input type="file" id="profile-photo-input" accept="image/png, image/jpeg, image/webp" style="display: none;" />
+              </div>
+
+              <div id="profile-display-name" style="font-size: 1.15rem; font-weight: 800; color: var(--text);">Kavin A M</div>
+              <div id="profile-display-role-badge" class="role-badge-pill role-badge-student" style="margin-top: 0.25rem;">Student</div>
+              <div id="profile-display-email" style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace; margin-top: 0.25rem;">student@karunya.edu.in</div>
+
+              <!-- Action buttons for Photo -->
+              <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem; flex-wrap: wrap; justify-content: center;">
+                <label for="profile-photo-input" class="btn btn-primary btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <span>📁 Upload Image</span>
+                </label>
+                <button type="button" id="profile-remove-photo-btn" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--border);">
+                  🗑️ Remove
+                </button>
+              </div>
+
+              <!-- Preset Avatars -->
+              <div style="margin-top: 1.25rem; width: 100%; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+                <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.05em; margin-bottom: 0.6rem;">
+                  Or Choose Campus Avatar
+                </div>
+                <div class="avatar-preset-list" style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                  <button type="button" class="avatar-preset-btn" data-preset="grad" title="Graduate Student">🎓</button>
+                  <button type="button" class="avatar-preset-btn" data-preset="coder" title="Software / Tech">💻</button>
+                  <button type="button" class="avatar-preset-btn" data-preset="scientist" title="Laboratory & Science">🔬</button>
+                  <button type="button" class="avatar-preset-btn" data-preset="engineer" title="Engineering & Field">🛠️</button>
+                  <button type="button" class="avatar-preset-btn" data-preset="scholar" title="Academics & Research">📚</button>
+                  <button type="button" class="avatar-preset-btn" data-preset="campus" title="Campus Lion">🦁</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Digital Institutional Identity Pass -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98)); color: #fff; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 1.75rem;">
+              <div style="position: absolute; right: -20px; top: -20px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%); border-radius: 50%;"></div>
+              
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 0.85rem; margin-bottom: 1rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="brand-icon" style="width: 28px; height: 28px; font-size: 0.75rem;">CC</div>
+                    <div>
+                      <div style="font-size: 0.82rem; font-weight: 800; letter-spacing: -0.3px;">Karunya CampusCare</div>
+                      <div style="font-size: 0.65rem; color: #94a3b8; letter-spacing: 0.05em; text-transform: uppercase;">Official Identity Pass</div>
+                    </div>
+                  </div>
+                  <span style="font-size: 0.65rem; font-weight: 800; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); padding: 0.2rem 0.55rem; border-radius: 9999px;">
+                    VERIFIED
+                  </span>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                  <div id="pass-avatar-preview" style="width: 60px; height: 60px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); display: grid; place-items: center; font-size: 1.5rem; overflow: hidden; flex-shrink: 0;">
+                    <!-- Synchronized Photo -->
+                  </div>
+                  <div>
+                    <div id="pass-name" style="font-weight: 800; font-size: 1.05rem; letter-spacing: -0.2px;">Kavin A M</div>
+                    <div id="pass-id" style="font-size: 0.72rem; color: #cbd5e1; font-family: monospace;">URK22CS1049</div>
+                    <div id="pass-dept" style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.15rem;">B.Tech Computer Science</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,0.12); display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: #94a3b8;">
+                <div>Security Hash: <span style="font-family: monospace; color: #e2e8f0;">SHA256-CC-89A1</span></div>
+                <div>Status: <span style="color: #4ade80; font-weight: 700;">Active 2026-27</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Edit Profile Details Card -->
           <div class="card">
+            <h3 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 1rem;">Profile & Contact Settings</h3>
             <div class="form-grid-2">
               <div class="form-group">
                 <label class="form-label">Full Name</label>
@@ -1046,15 +1269,24 @@
                 <input id="prof-email" type="text" class="form-input" disabled style="opacity: 0.7;" />
               </div>
               <div class="form-group">
+                <label class="form-label">Phone / WhatsApp Number</label>
+                <input id="prof-phone" type="text" class="form-input" placeholder="+91 98765 43210" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Campus Residence / Room</label>
+                <input id="prof-hostel" type="text" class="form-input" placeholder="e.g. Father Duraisamy Hostel, Room 304" />
+              </div>
+              <div class="form-group">
                 <label class="form-label">Department</label>
                 <input id="prof-dept" type="text" class="form-input" disabled style="opacity: 0.7;" />
               </div>
               <div class="form-group">
-                <label class="form-label">Role</label>
+                <label class="form-label">Institutional Role</label>
                 <input id="prof-role" type="text" class="form-input" disabled style="opacity: 0.7;" />
               </div>
             </div>
-            <button id="profile-save-btn" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">Save Profile</button>
+
+            <button id="profile-save-btn" class="btn btn-primary btn-sm" style="margin-top: 0.75rem;">Save Profile Changes</button>
             
             <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
               <div>
@@ -1062,6 +1294,928 @@
                 <div style="font-size: 0.74rem; color: var(--text-muted);">Export your complete grievance history and communications package.</div>
               </div>
               <button id="profile-export-gdpr-btn" class="btn btn-outline btn-sm">Download Privacy JSON</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 18: CAMPUS MAP & HEATMAP -->
+        <section id="view-heatmap" class="app-view">
+          <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div class="kicker">Spatial Operations & Zoning</div>
+              <h1 class="view-title">Campus Redressal Map & Incident Heatmap</h1>
+              <p class="view-subtitle">Interactive geographical inspection of university facilities, building health indices, and active physical grievances.</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Filter Zone:</span>
+              <select id="map-zone-filter" class="form-select" style="font-size: 0.78rem; padding: 0.35rem 0.6rem;">
+                <option value="">All University Zones</option>
+                <option value="Academic">Academic Blocks</option>
+                <option value="Hostel">Hostel Residences</option>
+                <option value="Dining">Dining & Food Courts</option>
+                <option value="Amenities">Library & NOC</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Heatmap Summary Stats -->
+          <div class="kpi-grid" style="margin-bottom: 1.25rem;">
+            <div class="kpi-card">
+              <div class="kpi-label">Active Campus Zones</div>
+              <div class="kpi-value font-mono">8 Blocks</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Highest Issue Density</div>
+              <div id="map-highest-zone" class="kpi-value font-mono" style="color: var(--primary);">Hostel Block C</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Facility Health Index</div>
+              <div id="map-health-index" class="kpi-value font-mono" style="color: var(--success);">94.8% Safe</div>
+            </div>
+          </div>
+
+          <!-- Interactive Zone Grid -->
+          <div id="map-zones-container" class="map-grid-zones">
+            <!-- Injected by JS -->
+          </div>
+
+          <!-- Filtered Zone Complaints Table -->
+          <div class="card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 id="map-selected-title" style="font-size: 0.95rem; font-weight: 800;">All Campus Facilities Grievances</h3>
+                <p id="map-selected-subtitle" style="font-size: 0.74rem; color: var(--text-muted);">Select any building above to filter localized work orders</p>
+              </div>
+              <button id="map-clear-zone-btn" class="btn btn-outline btn-sm">Show All Buildings</button>
+            </div>
+            <div class="table-container" style="border: none; border-radius: 0;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Title & Location</th>
+                    <th>Category</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="map-complaints-tbody">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 19: EMERGENCY SOS & RAPID REDRESSAL DESK -->
+        <section id="view-emergency" class="app-view">
+          <div class="emergency-banner">
+            <div>
+              <div style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #fca5a5;">24/7 Rapid Safety Desk</div>
+              <h2 style="font-size: 1.6rem; font-weight: 900; margin: 0.25rem 0;">Emergency SOS & Critical Incident Dispatch</h2>
+              <p style="font-size: 0.85rem; color: #fecaca; margin: 0; max-width: 600px;">Direct hotline to Campus Security, Proctorial Board, and Medical Ambulance. Triggers instant top-priority dispatch under guaranteed 1-Hour emergency SLA.</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <a href="tel:+914222614300" class="btn btn-light btn-sm" style="font-weight: 800; color: #991b1b;">📞 Call Security: +91 422 261 4300</a>
+              <a href="tel:+914222614108" class="btn btn-light btn-sm" style="font-weight: 800; color: #991b1b;">🚑 Ambulance: +91 422 261 4108</a>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem;">1-Click Rapid SOS Incident Loggers</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <!-- Trigger 1: Anti-Ragging -->
+            <div class="sos-trigger-card">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <span style="font-size: 1.4rem;">🛡️</span>
+                  <span class="status-tag status-escalated" style="font-size: 0.65rem;">1-Hour Critical SLA</span>
+                </div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.35rem;">Anti-Ragging & Harassment</h4>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Zero tolerance protocol. Directly alerts Dean of Student Affairs, Anti-Ragging Squad, and residential security escort.</p>
+              </div>
+              <button class="btn btn-danger btn-sm sos-launch-btn" data-type="ragging" style="margin-top: 1rem; width: 100%;">🚨 Trigger Anti-Ragging SOS</button>
+            </div>
+
+            <!-- Trigger 2: Medical / Injury -->
+            <div class="sos-trigger-card">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <span style="font-size: 1.4rem;">🚑</span>
+                  <span class="status-tag status-escalated" style="font-size: 0.65rem;">Immediate Dispatch</span>
+                </div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.35rem;">Medical Emergency & Injury</h4>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Severe illness, lab injury, fainting, or acute trauma. Dispatches campus ambulance and infirmary physician.</p>
+              </div>
+              <button class="btn btn-danger btn-sm sos-launch-btn" data-type="medical" style="margin-top: 1rem; width: 100%;">🚑 Trigger Medical SOS</button>
+            </div>
+
+            <!-- Trigger 3: Fire / Chemical -->
+            <div class="sos-trigger-card">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <span style="font-size: 1.4rem;">🔥</span>
+                  <span class="status-tag status-escalated" style="font-size: 0.65rem;">Code Red Hazard</span>
+                </div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.35rem;">Lab Chemical Hazard / Fire</h4>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Spill of hazardous reagents, burning odor, gas cylinder leak, or active fire. Triggers alarm & campus fire squad.</p>
+              </div>
+              <button class="btn btn-danger btn-sm sos-launch-btn" data-type="fire" style="margin-top: 1rem; width: 100%;">🔥 Trigger Fire/Hazard SOS</button>
+            </div>
+
+            <!-- Trigger 4: Electrical Spark / Flooding -->
+            <div class="sos-trigger-card">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <span style="font-size: 1.4rem;">⚡</span>
+                  <span class="status-tag status-escalated" style="font-size: 0.65rem;">Electrical Hazard</span>
+                </div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.35rem;">Severe Sparking / Flood</h4>
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Transformer sparking, exposed live wiring, or corridor water inundation creating fatal electrocution risk.</p>
+              </div>
+              <button class="btn btn-danger btn-sm sos-launch-btn" data-type="electrical" style="margin-top: 1rem; width: 100%;">⚡ Trigger Electrical SOS</button>
+            </div>
+          </div>
+
+          <!-- Active SOS Incidents -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800;">Active Critical Incidents Log</h3>
+                <p style="font-size: 0.74rem; color: var(--text-muted);">High-priority incident log under live administrative surveillance</p>
+              </div>
+              <span class="badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-weight: 700;">Live SOS Feed</span>
+            </div>
+            <div class="table-container" style="border: none; border-radius: 0;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Incident ID</th>
+                    <th>Category</th>
+                    <th>Location</th>
+                    <th>Reported At</th>
+                    <th>SLA Target</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="sos-incidents-tbody">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 20: CAMPUS PULSE & POLLS -->
+        <section id="view-polls" class="app-view">
+          <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div class="kicker">Democratic Campus Redressal</div>
+              <h1 class="view-title">Campus Voice: Student Sentiment & Pulse Polls</h1>
+              <p class="view-subtitle">Cast verified votes on proposed campus infrastructure upgrades, dining quality ratings, and institutional policy changes.</p>
+            </div>
+            <button id="propose-poll-btn" class="btn btn-primary btn-sm">+ Propose Campus Poll</button>
+          </div>
+
+          <!-- Polls List Container -->
+          <div id="polls-list-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+            <!-- Injected by JS -->
+          </div>
+        </section>
+
+        <!-- VIEW 21: RESOLUTION DOSSIER & CERTIFICATE -->
+        <section id="view-dossier" class="app-view">
+          <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div class="kicker">Official Institutional Documentation</div>
+              <h1 class="view-title">Grievance Redressal Dossier & Certificate</h1>
+              <p class="view-subtitle">Official university certificate of grievance resolution, audit milestones, digital verification seal, and case dossier.</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <select id="dossier-complaint-select" class="form-select" style="font-size: 0.78rem; padding: 0.4rem 0.6rem; min-width: 200px;">
+                <!-- Injected by JS -->
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="window.print()">🖨️ Print Certificate (PDF)</button>
+            </div>
+          </div>
+
+          <!-- Printable Certificate Paper Document -->
+          <div id="dossier-paper" class="certificate-paper">
+            <!-- Injected by JS -->
+          </div>
+        </section>
+
+        <!-- VIEW 22: OMBUDSMAN APPEALS TRIBUNAL -->
+        <section id="view-ombudsman" class="app-view">
+          <div class="tribunal-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <div style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #a5b4fc;">Autonomous Appellate Body</div>
+                <h2 style="font-size: 1.6rem; font-weight: 900; margin: 0.25rem 0;">University Ombudsman & Grievance Review Tribunal</h2>
+                <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0; max-width: 650px;">
+                  High-level institutional appellate tribunal for petitions contesting departmental grievance decisions, disputed closures, and severe administrative SLA breaches.
+                </p>
+              </div>
+              <button id="open-appeal-modal-btn" class="btn btn-light btn-sm" style="font-weight: 800; color: #1e1b4b;">+ Lodge Ombudsman Appeal</button>
+            </div>
+          </div>
+
+          <!-- Tribunal Members -->
+          <div style="margin-bottom: 1.5rem;">
+            <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 0.5rem;">Empaneled Appellate Officers</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <div class="tribunal-member-card">
+                <div style="font-size: 1.5rem;">⚖️</div>
+                <div>
+                  <div style="font-weight: 800; font-size: 0.82rem;">Dr. E. Grace Rajan</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">Independent Judicial Ombudsman</div>
+                </div>
+              </div>
+              <div class="tribunal-member-card">
+                <div style="font-size: 1.5rem;">🎓</div>
+                <div>
+                  <div style="font-weight: 800; font-size: 0.82rem;">Prof. D. Paulson</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">Dean of Student Affairs</div>
+                </div>
+              </div>
+              <div class="tribunal-member-card">
+                <div style="font-size: 1.5rem;">🛡️</div>
+                <div>
+                  <div style="font-weight: 800; font-size: 0.82rem;">Dr. Anita Mathew</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">Chief Proctor & Vigilance Head</div>
+                </div>
+              </div>
+              <div class="tribunal-member-card">
+                <div style="font-size: 1.5rem;">🧑‍🎓</div>
+                <div>
+                  <div style="font-weight: 800; font-size: 0.82rem;">Student Welfare Nominee</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">Elected Student Council Liaison</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Appeals List -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800;">Appellate Hearing Docket</h3>
+                <p style="font-size: 0.74rem; color: var(--text-muted);">Official docket of petitions submitted for judicial review</p>
+              </div>
+              <span class="badge" style="background: var(--primary-subtle); color: var(--primary); font-weight: 700;">Tribunal Register</span>
+            </div>
+            <div id="ombudsman-appeals-list" style="padding: 1.25rem;">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 23: MULTI-CHANNEL SMS & WHATSAPP GATEWAY SIMULATOR -->
+        <section id="view-notification-gateway" class="app-view">
+          <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div class="kicker">Multi-Channel Telemetry</div>
+              <h1 class="view-title">Automated SMS & WhatsApp Dispatch Gateway</h1>
+              <p class="view-subtitle">Live simulator of instant mobile alerts dispatched to students and duty staff upon ticket filing, dispatch, verification, and SLA breaches.</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button id="gw-clear-btn" class="btn btn-outline btn-sm">Clear Phone Feed</button>
+            </div>
+          </div>
+
+          <div class="phone-mockup-wrapper">
+            <!-- Simulated Mobile Phone -->
+            <div class="phone-mockup">
+              <div class="phone-inner">
+                <div class="phone-island">
+                  <div class="phone-island-pill"></div>
+                </div>
+                <div id="phone-app-bar" class="phone-app-header">
+                  <span id="phone-app-icon" style="font-size: 1rem;">💬</span>
+                  <div style="flex: 1;">
+                    <div id="phone-app-title" style="font-size: 0.78rem; font-weight: 700;">CampusCare WhatsApp Alert</div>
+                    <div style="font-size: 0.62rem; opacity: 0.85;">Official Verified Business Account</div>
+                  </div>
+                  <span style="font-size: 0.75rem;">🔔</span>
+                </div>
+                <div id="phone-stream" class="phone-messages">
+                  <!-- Injected by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Gateway Control Dashboard -->
+            <div style="flex: 1; min-width: 300px;">
+              <div class="card" style="margin-bottom: 1.25rem;">
+                <h3 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem;">📱 Channel Controls & Test Triggers</h3>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                  <button type="button" id="gw-mode-wa" class="btn btn-sm btn-primary" style="flex: 1;">🟢 WhatsApp Business</button>
+                  <button type="button" id="gw-mode-sms" class="btn btn-sm btn-outline" style="flex: 1;">🔵 Direct SMS Gateway</button>
+                </div>
+
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">Simulate Outbound Alerts</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                  <button id="btn-sim-ack" class="btn btn-outline btn-sm" style="text-align: left; padding: 0.5rem 0.65rem;">
+                    <b>✉️ Intake Receipt</b>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">Sent when student files</div>
+                  </button>
+                  <button id="btn-sim-assign" class="btn btn-outline btn-sm" style="text-align: left; padding: 0.5rem 0.65rem;">
+                    <b>🛠️ Staff Duty Alert</b>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">Officer dispatched</div>
+                  </button>
+                  <button id="btn-sim-breach" class="btn btn-outline btn-sm" style="text-align: left; padding: 0.5rem 0.65rem; border-color: #fca5a5;">
+                    <b style="color: var(--danger);">🚨 SLA Breach Warning</b>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">Urgent HOD alert</div>
+                  </button>
+                  <button id="btn-sim-verify" class="btn btn-outline btn-sm" style="text-align: left; padding: 0.5rem 0.65rem; border-color: #86efac;">
+                    <b style="color: var(--success);">✓ Verification OTP</b>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">Student test code</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Dispatch Gateway Logs -->
+              <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; font-weight: 800;">
+                  Live Outbound Transmission Log
+                </div>
+                <div class="table-container" style="max-height: 250px; overflow-y: auto; border: none;">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Channel</th>
+                        <th>Recipient</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="gw-log-tbody">
+                      <!-- Injected by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 24: STUDENT WELFARE & COMPENSATION CLAIMS -->
+        <section id="view-compensation" class="app-view">
+          <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div class="kicker">Institutional Redressal & Student Welfare</div>
+              <h1 class="view-title">Student Compensation & Damage Reimbursement</h1>
+              <p class="view-subtitle">Official university relief fund for property damage, mess fee adjustments, lab mishaps, and out-of-pocket expenses resulting from unresolved facility issues.</p>
+            </div>
+            <button id="open-claim-modal-btn" class="btn btn-primary btn-sm">+ File Relief / Expense Claim</button>
+          </div>
+
+          <!-- Relief Fund Stats -->
+          <div class="kpi-grid" style="margin-bottom: 1.25rem;">
+            <div class="kpi-card">
+              <div class="kpi-label">Disbursement Allocation</div>
+              <div class="kpi-value font-mono">₹5,00,000</div>
+              <div class="kpi-sub">Annual Welfare Reserve</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Claims Settled</div>
+              <div id="claim-kpi-settled" class="kpi-value font-mono" style="color: var(--success);">₹42,500</div>
+              <div class="kpi-sub">100% Verified Payouts</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Average Payout Cycle</div>
+              <div class="kpi-value font-mono" style="color: var(--primary);">48 Hours</div>
+              <div class="kpi-sub">Direct Account Credit</div>
+            </div>
+          </div>
+
+          <!-- Claims Table -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800;">Registry of Compensation & Expense Claims</h3>
+                <p style="font-size: 0.74rem; color: var(--text-muted);">Transparent institutional disbursement audit log</p>
+              </div>
+              <span class="badge" style="background: var(--bg-subtle); color: var(--text);">Audited by Accounts Dept</span>
+            </div>
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Claim ID & Student</th>
+                    <th>Linked Grievance</th>
+                    <th>Claim Purpose</th>
+                    <th>Amount Claimed</th>
+                    <th>Disbursement Status</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="compensation-claims-tbody">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 25: SLA ESCALATION MATRIX & TIME-TRAVEL SIMULATOR -->
+        <section id="view-sla-matrix" class="app-view">
+          <div class="view-header">
+            <div class="kicker">Service Level Architecture</div>
+            <h1 class="view-title">SLA Matrix & Escalation Engine</h1>
+            <p class="view-subtitle">Automated multi-tier administrative governance hierarchy and interactive time-travel simulation engine.</p>
+          </div>
+
+          <!-- Time Travel Simulator Control -->
+          <div class="time-travel-control">
+            <div>
+              <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--primary);">⏱️ Interactive SLA Time-Travel Machine</div>
+              <div style="font-size: 0.82rem; font-weight: 700; color: var(--text);">Advance system time to simulate real-time automatic ticket escalations and notifications:</div>
+            </div>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button id="tt-adv-6h" class="btn btn-outline btn-sm">+ Advance 6 Hours</button>
+              <button id="tt-adv-24h" class="btn btn-outline btn-sm">+ Advance 24 Hours</button>
+              <button id="tt-adv-48h" class="btn btn-outline btn-sm">+ Advance 48 Hours</button>
+              <button id="tt-trigger-breaches" class="btn btn-danger btn-sm">⚡ Trigger Overdue Escalations Now</button>
+            </div>
+          </div>
+
+          <!-- 4-Tier Matrix Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <!-- Tier 1: Critical -->
+            <div class="card" style="border-top: 4px solid var(--danger);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="status-tag status-escalated" style="font-weight: 800;">Critical Hazard</span>
+                <span class="font-mono font-bold" style="color: var(--danger);">4h SLA</span>
+              </div>
+              <div style="font-size: 0.8rem; line-height: 1.5; color: var(--text-muted);">
+                <b>Escalation Path:</b><br />
+                • 0h: Dispatch to On-Duty Staff<br />
+                • 2h: Urgent Warning SMS to HOD<br />
+                • 4h: Auto-Escalated to Dean<br />
+                • 6h: Vice Chancellor Emergency Alert
+              </div>
+            </div>
+
+            <!-- Tier 2: High -->
+            <div class="card" style="border-top: 4px solid #f97316;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="status-tag status-inprogress" style="font-weight: 800; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;">High Priority</span>
+                <span class="font-mono font-bold" style="color: #c2410c;">12h SLA</span>
+              </div>
+              <div style="font-size: 0.8rem; line-height: 1.5; color: var(--text-muted);">
+                <b>Escalation Path:</b><br />
+                • 0h: Triage to Department Queue<br />
+                • 6h: Warning to Assigned Tech<br />
+                • 12h: Department Head Alert<br />
+                • 24h: Dean Review
+              </div>
+            </div>
+
+            <!-- Tier 3: Medium -->
+            <div class="card" style="border-top: 4px solid var(--primary);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="status-tag status-pending" style="font-weight: 800;">Medium Priority</span>
+                <span class="font-mono font-bold" style="color: var(--primary);">48h SLA</span>
+              </div>
+              <div style="font-size: 0.8rem; line-height: 1.5; color: var(--text-muted);">
+                <b>Escalation Path:</b><br />
+                • 0h: Standard Registry Queuing<br />
+                • 24h: Halfway Progress Check<br />
+                • 48h: Supervisor Auto-Alert<br />
+                • 72h: Escalation Notice
+              </div>
+            </div>
+
+            <!-- Tier 4: Low -->
+            <div class="card" style="border-top: 4px solid #10b981;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span class="status-tag status-resolved" style="font-weight: 800;">Routine Request</span>
+                <span class="font-mono font-bold" style="color: #047857;">120h SLA</span>
+              </div>
+              <div style="font-size: 0.8rem; line-height: 1.5; color: var(--text-muted);">
+                <b>Escalation Path:</b><br />
+                • 0h: Routine Job Logged<br />
+                • 72h: Maintenance Batch Alert<br />
+                • 120h: Weekly Review Flag<br />
+                • 144h: Admin Notification
+              </div>
+            </div>
+          </div>
+
+          <!-- Active SLA Countdown Monitor Table -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800;">Live SLA Countdown Engine</h3>
+                <p style="font-size: 0.74rem; color: var(--text-muted);">Real-time clock tracking remaining resolution time for all active tickets</p>
+              </div>
+              <span class="badge" style="background: var(--bg-subtle);">Active Radar</span>
+            </div>
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Issue & Department</th>
+                    <th>Priority</th>
+                    <th>Remaining SLA Time</th>
+                    <th>Current Phase</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="matrix-sla-tbody">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 26: STUDENT REDRESSAL CENTRAL HUB (STUDENT PERSONA) -->
+        <section id="view-student-hub" class="app-view">
+          <div class="persona-banner student-theme">
+            <div>
+              <div style="font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.85;">Student Redressal Workspace</div>
+              <h2 id="student-hub-name" style="font-size: 1.55rem; font-weight: 900; margin: 0.25rem 0;">Student Portal & Live Tracker</h2>
+              <p id="student-hub-meta" style="font-size: 0.82rem; opacity: 0.9; margin: 0;">Computer Science · Reg. URK23CS1042 · Hostel Block C, Room 314</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-light btn-sm" data-view="submit" style="font-weight: 800; color: #4338ca;">+ Report New Issue</button>
+              <button class="btn btn-outline btn-sm" style="color: #fff; border-color: rgba(255,255,255,0.5);" data-view="compensation">💰 My Claims</button>
+            </div>
+          </div>
+
+          <!-- Active Lifecycle Pipeline Stepper -->
+          <div class="card" style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h3 style="font-size: 0.88rem; font-weight: 800;">Active Grievance Resolution Lifecycle</h3>
+              <span id="student-active-ticket-id" class="font-mono font-bold" style="font-size: 0.78rem; color: var(--primary);">CC-260930101</span>
+            </div>
+            <div class="lifecycle-tracker">
+              <div class="lifecycle-step completed" id="step-intake">
+                <div class="lifecycle-step-dot">1</div>
+                <div class="lifecycle-step-label">Submitted</div>
+              </div>
+              <div class="lifecycle-step completed" id="step-routing">
+                <div class="lifecycle-step-dot">2</div>
+                <div class="lifecycle-step-label">Dept Dispatched</div>
+              </div>
+              <div class="lifecycle-step active" id="step-repair">
+                <div class="lifecycle-step-dot">3</div>
+                <div class="lifecycle-step-label">On-Site Repair</div>
+              </div>
+              <div class="lifecycle-step" id="step-verify">
+                <div class="lifecycle-step-dot">4</div>
+                <div class="lifecycle-step-label">Student Verification</div>
+              </div>
+              <div class="lifecycle-step" id="step-close">
+                <div class="lifecycle-step-dot">5</div>
+                <div class="lifecycle-step-label">Closed & Certified</div>
+              </div>
+            </div>
+            <div id="student-lifecycle-note" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-subtle); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm);">
+              🛠️ Field technician is on-site repairing the overhead water pipe. Expected test restoration within 2 hours.
+            </div>
+          </div>
+
+          <!-- Quick Action Tiles -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="persona-action-card" data-view="submit">
+              <div>
+                <div style="font-size: 1.6rem; margin-bottom: 0.35rem;">🎙️</div>
+                <h4 style="font-size: 0.9rem; font-weight: 800;">Voice Grievance Intake</h4>
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Speak your issue directly with instant speech-to-text dictation.</p>
+              </div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-top: 0.75rem;">Dictate Now →</div>
+            </div>
+
+            <div class="persona-action-card" data-view="submit">
+              <div>
+                <div style="font-size: 1.6rem; margin-bottom: 0.35rem;">📸</div>
+                <h4 style="font-size: 0.9rem; font-weight: 800;">Attach Photo Proof</h4>
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Upload photos of physical damage or choose sample evidence.</p>
+              </div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-top: 0.75rem;">Upload Photo →</div>
+            </div>
+
+            <div class="persona-action-card" data-view="compensation">
+              <div>
+                <div style="font-size: 1.6rem; margin-bottom: 0.35rem;">💰</div>
+                <h4 style="font-size: 0.9rem; font-weight: 800;">Claim Compensation</h4>
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Request financial relief for damaged property or mess disruptions.</p>
+              </div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--success); margin-top: 0.75rem;">File Claim →</div>
+            </div>
+
+            <div class="persona-action-card" data-view="ombudsman">
+              <div>
+                <div style="font-size: 1.6rem; margin-bottom: 0.35rem;">🏛️</div>
+                <h4 style="font-size: 0.9rem; font-weight: 800;">Ombudsman Appeal</h4>
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Contest unfair closures directly with the Vice-Chancellor Tribunal.</p>
+              </div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #4338ca; margin-top: 0.75rem;">Lodge Appeal →</div>
+            </div>
+          </div>
+
+          <!-- My Grievances History -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800;">My Reported Campus Grievances</h3>
+                <p style="font-size: 0.74rem; color: var(--text-muted);">Real-time status, assigned technician, and SLA deadline for your complaints</p>
+              </div>
+            </div>
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Issue Summary</th>
+                    <th>Department</th>
+                    <th>SLA Countdown</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="student-my-complaints-tbody">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 27: FACULTY INVESTIGATION & STUDENT GRIEVANCES RESOLUTION HUB -->
+        <section id="view-staff-workstation" class="app-view">
+          <div class="persona-banner staff-theme">
+            <div>
+              <div style="font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.85;">Faculty Redressal & Investigation Desk</div>
+              <h2 id="staff-officer-name" style="font-size: 1.55rem; font-weight: 900; margin: 0.25rem 0;">Faculty Investigation & Review Desk</h2>
+              <p id="staff-officer-meta" style="font-size: 0.82rem; opacity: 0.9; margin: 0;">Faculty Investigator: Dr. Rajesh Kumar · Maintenance & Infrastructure · Shift: On-Duty (Active Inspection)</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button id="staff-refresh-queue-btn" class="btn btn-light btn-sm" style="font-weight: 800; color: #065f46;">🔄 Refresh Student Grievance Queue</button>
+            </div>
+          </div>
+
+          <!-- Faculty KPI Overview Cards -->
+          <div class="kpi-grid" style="margin-bottom: 1.25rem;">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Student Grievances</div>
+              <div id="faculty-kpi-total" class="kpi-value font-mono" style="color: var(--text);">0</div>
+              <div class="kpi-sub">Logged across campus</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Assigned to My Desk</div>
+              <div id="staff-kpi-active" class="kpi-value font-mono" style="color: var(--primary);">2</div>
+              <div class="kpi-sub">Active investigations</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Pending On-Site Inspection</div>
+              <div id="faculty-kpi-inspection" class="kpi-value font-mono" style="color: #f59e0b;">1</div>
+              <div class="kpi-sub">Awaiting field evaluation</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Resolved & Ready for Sign-Off</div>
+              <div id="faculty-kpi-resolved" class="kpi-value font-mono" style="color: var(--success);">0</div>
+              <div class="kpi-sub">Work completed with proof</div>
+            </div>
+          </div>
+
+          <!-- Dual Column Layout: Left Student Complaint Roster, Right Faculty Inspection Workbench -->
+          <div class="faculty-investigation-layout">
+            <!-- Left Panel: Student Complaints Roster -->
+            <div class="card" style="padding: 1rem; display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div>
+                  <h3 style="font-size: 0.92rem; font-weight: 800; margin-bottom: 2px;">Student Grievances Roster</h3>
+                  <p style="font-size: 0.72rem; color: var(--text-muted); margin: 0;">Click any student ticket to inspect and resolve</p>
+                </div>
+                <span id="faculty-roster-count" class="badge" style="background: var(--bg-subtle); font-size: 0.72rem;">0 Tickets</span>
+              </div>
+
+              <!-- Filter Tabs for Faculty -->
+              <div class="faculty-filter-tab-bar">
+                <button class="faculty-tab-btn active" data-faculty-filter="all">All Student Issues</button>
+                <button class="faculty-tab-btn" data-faculty-filter="mine">Assigned to Me</button>
+                <button class="faculty-tab-btn" data-faculty-filter="pending">Pending Inspection</button>
+                <button class="faculty-tab-btn" data-faculty-filter="critical">Critical (4h SLA)</button>
+                <button class="faculty-tab-btn" data-faculty-filter="resolved">Resolved Proofs</button>
+              </div>
+
+              <!-- Search Box -->
+              <div style="margin-bottom: 0.75rem;">
+                <input type="text" id="faculty-roster-search" class="form-input" style="font-size: 0.78rem; padding: 0.4rem 0.65rem;" placeholder="🔍 Filter by student, ticket ID, room, or issue..." />
+              </div>
+
+              <!-- Scrollable Roster -->
+              <div id="faculty-roster-list" style="max-height: 540px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                <!-- Populated dynamically by app.js -->
+              </div>
+            </div>
+
+            <!-- Right Panel: Comprehensive Faculty Inspection & Resolution Workbench -->
+            <div class="faculty-inspector-card" id="faculty-workbench-panel">
+              <!-- Header Bar of Active Ticket -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1rem;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 4px;">
+                    <span id="faculty-active-ticket-id" class="font-mono font-bold" style="font-size: 0.95rem; color: #065f46;">Select Ticket</span>
+                    <span id="faculty-active-status" class="status-tag status-pending">Pending</span>
+                    <span id="faculty-active-priority" class="status-tag status-critical">High</span>
+                  </div>
+                  <h3 id="faculty-active-title" style="font-size: 1.05rem; font-weight: 800; margin: 0 0 4px 0;">Select a student complaint from the roster to inspect</h3>
+                  <div id="faculty-active-meta" style="font-size: 0.75rem; color: var(--text-muted);">Submitted by student · Awaiting faculty evaluation</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-subtle);">Remaining SLA Target</div>
+                  <div id="faculty-active-sla" class="font-mono font-bold" style="font-size: 0.85rem; color: var(--danger);">—</div>
+                </div>
+              </div>
+
+              <!-- Student Profile & Evidence Section -->
+              <div style="background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem; border: 1px solid var(--border);">
+                <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.35rem;">Student Case Dossier & Evidence:</div>
+                <div id="faculty-student-bio" style="font-size: 0.78rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">—</div>
+                <div id="faculty-student-desc" style="font-size: 0.8rem; line-height: 1.5; color: var(--text-muted); margin-bottom: 0.65rem; background: var(--bg-surface); padding: 0.6rem; border-radius: var(--radius-sm);">—</div>
+
+                <!-- Attached Photos Thumbnail Bar -->
+                <div>
+                  <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.35rem;">Attached Student Photo Proof:</div>
+                  <div id="faculty-evidence-thumbnails" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <span style="font-size: 0.72rem; color: var(--text-subtle); font-style: italic;">No student photo attached.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Physical On-Site Inspection & Damage Assessment -->
+              <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-subtle);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <h4 style="font-size: 0.85rem; font-weight: 800; margin: 0;">1. On-Site Physical Inspection & SOPs</h4>
+                  <div style="display: flex; gap: 0.35rem; align-items: center;">
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">Severity:</span>
+                    <select id="faculty-severity-select" class="form-select" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">
+                      <option value="Minor Issue">Minor (Routine)</option>
+                      <option value="Moderate Damage" selected>Moderate Damage</option>
+                      <option value="Severe Hazard">Severe Hazard (Immediate)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Mandatory SOP Checklist -->
+                <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem 0.85rem; margin-bottom: 0.75rem; font-size: 0.75rem;">
+                  <div class="checklist-item">
+                    <input type="checkbox" id="faculty-chk-1" checked />
+                    <label for="faculty-chk-1">Physical location visited & verified (Room / Block)</label>
+                  </div>
+                  <div class="checklist-item">
+                    <input type="checkbox" id="faculty-chk-2" checked />
+                    <label for="faculty-chk-2">Student occupants consulted and safety hazards isolated</label>
+                  </div>
+                  <div class="checklist-item">
+                    <input type="checkbox" id="faculty-chk-3" />
+                    <label for="faculty-chk-3">Spare parts, inventory, or equipment verified in stock</label>
+                  </div>
+                  <div class="checklist-item">
+                    <input type="checkbox" id="faculty-chk-4" />
+                    <label for="faculty-chk-4">Operational pressure / electric / network load test executed</label>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="font-size: 0.72rem;">Faculty Inspection Observations & Field Findings</label>
+                  <textarea id="faculty-inspection-notes" rows="2" class="form-textarea" style="font-size: 0.78rem;" placeholder="Record observations from physical inspection, cause of failure, and immediate actions taken..."></textarea>
+                </div>
+              </div>
+
+              <!-- Resolution & Proof of Work -->
+              <div style="margin-bottom: 1rem;">
+                <h4 style="font-size: 0.85rem; font-weight: 800; margin: 0 0 0.5rem 0;">2. Work Order Execution & Proof of Resolution</h4>
+                <div class="form-grid-2" style="margin-bottom: 0.75rem;">
+                  <div class="form-group">
+                    <label class="form-label" style="font-size: 0.72rem;">Parts / Materials Used</label>
+                    <select id="staff-parts-select" class="form-select" style="font-size: 0.78rem;">
+                      <option value="None">None (Adjustment / Calibration only)</option>
+                      <option value="Ball Valve 1/2 inch">Ball Valve 1/2" Brass</option>
+                      <option value="MCB Breaker 20A">MCB Breaker 20A Schneider</option>
+                      <option value="Cat6 RJ45 Connector">Cat6 RJ45 Patch Terminal</option>
+                      <option value="LED Panel Light 36W">LED Panel Light 36W</option>
+                      <option value="Classroom Desk Bracket">Classroom Desk Bracket</option>
+                      <option value="Water Purifier Filter Cartridge">Water Purifier Filter Cartridge</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" style="font-size: 0.72rem;">Operational Resolution State</label>
+                    <select id="faculty-action-status-select" class="form-select" style="font-size: 0.78rem;">
+                      <option value="In Progress">🛠️ Mark "In Progress" (Field Work Active)</option>
+                      <option value="Resolved" selected>✅ Mark "Resolved" (Work Completed with Proof)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.72rem;">Faculty Work Summary & Verification Note for Student *</label>
+                  <textarea id="staff-field-note" rows="2" class="form-textarea" style="font-size: 0.78rem;" placeholder="Explain exactly how the issue was resolved so the student can verify..."></textarea>
+                </div>
+
+                <!-- Internal Faculty Deliberation (Confidential to Faculty & HOD) -->
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.72rem; color: #4338ca;">🔒 Internal Faculty Deliberation Remarks (Confidential to Faculty & HOD)</label>
+                  <input type="text" id="faculty-internal-remarks" class="form-input" style="font-size: 0.76rem;" placeholder="e.g. Contractor alerted for preventative inspection; replacement costs booked under hostel budget." />
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                  <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; cursor: pointer;">
+                    <input type="checkbox" id="faculty-sms-alert-check" checked />
+                    <span><b>Dispatch Instant WhatsApp & SMS Notification</b> to student upon status update</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Action Buttons Bar -->
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
+                <button id="faculty-escalate-hod-btn" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5;">
+                  ⚡ Escalate to Department Head (HOD)
+                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button id="faculty-save-inspection-btn" class="btn btn-outline btn-sm">
+                    💾 Save Inspection Notes
+                  </button>
+                  <button id="staff-mark-resolved-btn" class="btn btn-success btn-sm">
+                    ✓ Submit Resolution & Request Student Verification
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 28: HOD COMMAND & WORKLOAD CONSOLE (DEPARTMENT HEAD PERSONA) -->
+        <section id="view-hod-console" class="app-view">
+          <div class="persona-banner hod-theme">
+            <div>
+              <div style="font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.85;">Executive Departmental Governance</div>
+              <h2 id="hod-dept-name" style="font-size: 1.55rem; font-weight: 900; margin: 0.25rem 0;">Department Head Command Console</h2>
+              <p id="hod-dept-meta" style="font-size: 0.82rem; opacity: 0.9; margin: 0;">Department: Maintenance & Campus Facilities · Head: Dr. John Arthur</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button id="hod-audit-signoff-btn" class="btn btn-light btn-sm" style="font-weight: 800; color: #7c2d12;">📜 HOD Monthly Sign-Off</button>
+            </div>
+          </div>
+
+          <!-- Staff Workload Balancer -->
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800;">Departmental Staff Capacity & Workload Balancer</h3>
+                <p style="font-size: 0.74rem; color: var(--text-muted);">Real-time dispatch load distribution among departmental responders</p>
+              </div>
+              <span class="badge" style="background: var(--bg-subtle);">Active Balancing Engine</span>
+            </div>
+
+            <div id="hod-staff-workload-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+              <!-- Injected by JS -->
+            </div>
+
+            <!-- Quick Ticket Reassignment Tool -->
+            <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+              <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-subtle); margin-bottom: 0.5rem;">Rebalance Ticket Assignment:</div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                <select id="hod-reassign-ticket-select" class="form-select" style="flex: 1.5; min-width: 200px;">
+                  <!-- Populated by JS -->
+                </select>
+                <select id="hod-reassign-officer-select" class="form-select" style="flex: 1; min-width: 160px;">
+                  <!-- Populated by JS -->
+                </select>
+                <button id="hod-commit-reassign-btn" class="btn btn-primary btn-sm">Reassign & Notify Officer</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Department SLA Risk & Overdue Triage -->
+          <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800;">Critical SLA Risk Radar & Immediate HOD Intervention</h3>
+                <p style="font-size: 0.74rem; color: var(--text-muted);">Unresolved department tickets within 6 hours of guaranteed SLA breach</p>
+              </div>
+              <span class="badge" style="background: #fef2f2; color: #dc2626; font-weight: 700;">HOD Supervisory Priority</span>
+            </div>
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Issue Summary</th>
+                    <th>Assigned Staff</th>
+                    <th>SLA Status</th>
+                    <th style="text-align: right;">HOD Action</th>
+                  </tr>
+                </thead>
+                <tbody id="hod-risk-radar-tbody">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -1085,8 +2239,123 @@
       </div>
     </div>
 
+    <!-- Ombudsman Appeal Modal -->
+    <div id="ombudsman-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 540px;">
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <div class="kicker" style="color: #4338ca;">Appellate Tribunal Petition</div>
+        <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem;">Lodge Ombudsman Appeal</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Submit your petition directly to the University Grievance Tribunal and Vice-Chancellor oversight panel.
+        </p>
+
+        <form id="ombudsman-appeal-form">
+          <div class="form-group">
+            <label class="form-label">Linked Grievance Ticket *</label>
+            <select id="appeal-complaint-select" class="form-select" required>
+              <!-- Populated by JS -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Appellate Grounds *</label>
+            <select id="appeal-grounds-select" class="form-select" required>
+              <option value="Premature or False Closure">Premature or False Closure without physical repair</option>
+              <option value="Severe SLA Breach (>48h overdue)">Severe SLA Breach (>48h overdue without administrative response)</option>
+              <option value="Staff Misconduct or Negligence">Staff Misconduct, Unprofessionalism or Negligence</option>
+              <option value="Unsafe or Dangerous Working Condition">Unsafe or Hazardous Environmental Condition Left Unattended</option>
+              <option value="Disputed Academic / Examination Penalty">Disputed Academic Grading / Fine / Penalty</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Detailed Appeal Statement *</label>
+            <textarea id="appeal-statement-input" rows="4" class="form-textarea" placeholder="Explain why the departmental response was inadequate, what remains unresolved, and your requested remedy..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Requested Corrective Remedy *</label>
+            <input id="appeal-remedy-input" type="text" class="form-input" placeholder="e.g. Immediate replacement of water booster pump + fee waiver" required />
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+            Submit Formal Appeal to Tribunal Docket →
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Compensation Claim Modal -->
+    <div id="compensation-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 520px;">
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <div class="kicker" style="color: #059669;">Student Welfare Relief</div>
+        <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem;">File Compensation / Reimbursement Claim</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Request financial relief or fee adjustment for verified property damage or expenses incurred due to facility failures.
+        </p>
+
+        <form id="compensation-claim-form">
+          <div class="form-group">
+            <label class="form-label">Linked Grievance Ticket *</label>
+            <select id="claim-complaint-select" class="form-select" required>
+              <!-- Populated by JS -->
+            </select>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Claim Type *</label>
+              <select id="claim-type-select" class="form-select" required>
+                <option value="Property Damage">Property Damage (Laptop/Books/Electronics)</option>
+                <option value="Mess Fee Refund">Mess / Food Fee Refund</option>
+                <option value="Medical Out-of-Pocket">Medical Out-of-Pocket Prescription</option>
+                <option value="Transport Reimbursement">Emergency Transport Reimbursement</option>
+                <option value="Hostel Accommodation Waiver">Hostel Room Rent Waiver</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Claim Amount (₹ INR) *</label>
+              <input id="claim-amount-input" type="number" min="100" max="50000" class="form-input" placeholder="e.g. 2500" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Damage Description & Expense Justification *</label>
+            <textarea id="claim-desc-input" rows="3" class="form-textarea" placeholder="Detail the damaged items, invoice date, or reason for expense..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Beneficiary UPI ID or Bank Account No. *</label>
+            <input id="claim-upi-input" type="text" class="form-input" placeholder="e.g. student@okaxis or Karunya Student ID" required />
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+            Submit Claim to Finance Board →
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Evidence Zoom Modal -->
+    <div id="evidence-zoom-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 680px; text-align: center; padding: 1.5rem;">
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <div class="kicker">Physical Evidence Inspection</div>
+        <h4 id="evidence-zoom-title" style="margin-bottom: 1rem; font-weight: 800;">Evidence Attachment</h4>
+        <div style="max-height: 480px; overflow: hidden; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: #000;">
+          <img id="evidence-zoom-img" src="" alt="Evidence" style="max-width: 100%; max-height: 480px; object-fit: contain;" />
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- Mobile Bottom Navigation Bar (Visible only on mobile/tablet) -->
+    <nav id="mobile-bottom-bar" class="mobile-bottom-bar" aria-label="Mobile Bottom Navigation">
+      <!-- Injected dynamically by app.js based on role -->
+    </nav>
 
     <!-- Footer -->
     <footer class="app-footer">

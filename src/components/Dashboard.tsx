@@ -11,26 +11,60 @@ import {
   TrendingUp,
   ShieldCheck,
   Building,
+  QrCode,
 } from 'lucide-react';
 import { Complaint, User } from '../types';
 import { getSlaStatus } from '../services/smartEngine';
+import { StaffDesk } from './StaffDesk';
+import { HeadCommandCenter } from './HeadCommandCenter';
 
 interface DashboardProps {
   currentUser: User;
   allComplaints: Complaint[];
+  allUsers?: User[];
   onNavigate: (view: string) => void;
   onSelectComplaint: (cid: string) => void;
+  onRefreshComplaints?: () => void;
+  onOpenScanner?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   currentUser,
   allComplaints,
+  allUsers = [],
   onNavigate,
   onSelectComplaint,
+  onRefreshComplaints,
+  onOpenScanner,
 }) => {
+  // If staff, render "My Desk" directly
+  if (currentUser.role === 'staff') {
+    return (
+      <StaffDesk
+        currentUser={currentUser}
+        allComplaints={allComplaints}
+        onSelectComplaint={onSelectComplaint}
+        onRefreshComplaints={onRefreshComplaints}
+        onOpenScanner={onOpenScanner}
+      />
+    );
+  }
+
+  // If department head, render "Department Command Center" directly
+  if (currentUser.role === 'department_head') {
+    return (
+      <HeadCommandCenter
+        currentUser={currentUser}
+        allComplaints={allComplaints}
+        allUsers={allUsers}
+        onSelectComplaint={onSelectComplaint}
+        onRefreshComplaints={onRefreshComplaints}
+        onOpenScanner={onOpenScanner}
+      />
+    );
+  }
+
   const isStudent = currentUser.role === 'student';
-  const isStaff = currentUser.role === 'staff';
-  const isDeptHead = currentUser.role === 'department_head';
   const isAdmin = currentUser.role === 'admin';
 
   // Filter complaints based on persona
@@ -38,20 +72,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (isStudent) {
       return allComplaints.filter((c) => c.student_id === currentUser.id);
     }
-    if (isStaff) {
-      return allComplaints.filter(
-        (c) =>
-          c.department.toLowerCase() === currentUser.department.toLowerCase() ||
-          c.assigned_to === currentUser.id
-      );
-    }
-    if (isDeptHead) {
-      return allComplaints.filter(
-        (c) => c.department.toLowerCase() === currentUser.department.toLowerCase()
-      );
-    }
     return allComplaints;
-  }, [allComplaints, currentUser, isStudent, isStaff, isDeptHead]);
+  }, [allComplaints, currentUser, isStudent]);
 
   // Key metrics
   const total = userComplaints.length;
@@ -153,6 +175,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               Live Status Board
             </button>
+
+            {onOpenScanner && (
+              <button
+                onClick={onOpenScanner}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-indigo-200 hover:text-white bg-indigo-900/60 hover:bg-indigo-800/80 border border-indigo-700/60 rounded-lg transition-colors"
+                title="Scan physical equipment or door QR inspection tag with camera"
+              >
+                <QrCode className="w-4 h-4 text-indigo-400" />
+                Scan Inspection Tag
+              </button>
+            )}
           </div>
         </div>
       </div>

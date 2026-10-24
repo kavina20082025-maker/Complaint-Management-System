@@ -61,7 +61,8 @@ Guidelines for response:
 1. Directly analyze what the user asked with specific recommendations, practical instructions, and step-by-step guidance.
 2. Mention the specific category, expected SLA deadline, and relevant university department or contact.
 3. Be professional, supportive, clear, and empathetic. Do NOT use generic repetitive boilerplate.
-4. Keep the response concise, formatted with clear paragraphs or bullet points.`;
+4. Keep the response concise, formatted with clear paragraphs or bullet points.
+5. If the user asks for a graph, chart, visual analysis, or trend statistics, provide a structured graphical breakdown with ASCII metric bars, SLA compliance percentages, and note that interactive visual SVG graphs are available live on the Dashboard and Trends & SLA portal.`;
 
     const prompt = `User role: ${role || 'Student'}, Department: ${department || 'General'}
 User question: "${question.trim()}"
