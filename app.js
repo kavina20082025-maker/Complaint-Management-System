@@ -371,20 +371,41 @@
     {
       id: 'maint_1',
       title: 'Hostel Block B & C Overhead Water Tank Deep Sanitization',
+      category: 'Hostel Maintenance',
       area: 'Hostel Blocks B and C',
       date: new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0],
-      note: 'Municipal chlorination and ultraviolet tank scouring. Supply will be suspended between 08:00 AM and 01:00 PM. Alternate reserve taps available at Ground Floor tank.',
+      time_window: '08:00 AM - 01:00 PM (5 Hours)',
+      impact: 'High (Service Disrupted)',
+      lead_name: 'Dr. Rajesh Kumar (Ext. 204)',
+      note: 'Municipal chlorination and ultraviolet tank scouring. Water supply will be suspended between 08:00 AM and 01:00 PM. Alternate reserve taps available at Ground Floor tank.',
       created_by: 'staff@campus.com',
       status: 'Scheduled',
     },
     {
       id: 'maint_2',
       title: 'Campus Central Fiber Backbone Switch Migration',
+      category: 'IT Support',
       area: 'Academic Blocks 1 to 4 & Central Library',
       date: new Date(Date.now() + 48 * 3600 * 1000).toISOString().split('T')[0],
+      time_window: '11:00 PM - 11:45 PM (45 Mins)',
+      impact: 'Medium (Intermittent)',
+      lead_name: 'Ananya Sharma (Ext. 102)',
       note: 'Upgrading core network 10G SFP+ modules. Brief 15-minute intermittent network drops expected between 11:00 PM and 11:30 PM.',
       created_by: 'itstaff@campus.com',
       status: 'Scheduled',
+    },
+    {
+      id: 'maint_3',
+      title: 'Substation Transformer 2 Preventive Oil Filtration',
+      category: 'Electrical',
+      area: 'Technology Block & Central Cafeteria',
+      date: new Date().toISOString().split('T')[0],
+      time_window: '02:00 PM - 05:00 PM (3 Hours)',
+      impact: 'High (Service Disrupted)',
+      lead_name: 'Engr. S. Murugan (Ext. 204)',
+      note: 'Periodic dialectric oil filtration. Backup diesel generators 1 & 2 are synchronized to supply emergency lab illumination.',
+      created_by: 'staff@campus.com',
+      status: 'In Progress',
     },
   ];
 
@@ -994,12 +1015,15 @@
     const headerLoginBtn = document.getElementById('header-login-btn');
     const headerRegBtn = document.getElementById('header-register-btn');
 
+    const floatingAi = document.getElementById('floating-ai-container');
+
     if (isAuthView) {
       if (topbarNav) topbarNav.style.display = 'none';
       if (sidebar) sidebar.style.display = 'none';
       if (notifBtn) notifBtn.style.display = 'none';
       if (submitBtn) submitBtn.style.display = 'none';
       if (userNav) userNav.style.display = 'none';
+      if (floatingAi) floatingAi.style.display = 'none';
       if (guestNav) {
         guestNav.style.display = 'flex';
         if (activeView === 'login') {
@@ -1022,6 +1046,7 @@
       if (notifBtn) notifBtn.style.display = 'grid';
       if (guestNav) guestNav.style.display = 'none';
       if (userNav) userNav.style.display = 'block';
+      if (floatingAi) floatingAi.style.display = 'flex';
       if (submitBtn) {
         submitBtn.style.display = currentUser && currentUser.role === 'student' ? 'inline-flex' : 'none';
       }
@@ -1263,7 +1288,7 @@
         student: [
           'dashboard', 'student-hub', 'submit', 'complaint-detail',
           'status-board', 'compensation', 'ombudsman', 'dossier',
-          'emergency', 'polls', 'search', 'services', 'announcements',
+          'emergency', 'assistant', 'search', 'services', 'announcements',
           'watchlist', 'profile'
         ],
         staff: [
@@ -1274,7 +1299,7 @@
         department_head: [
           'dashboard', 'hod-console', 'sla-warning', 'sla-matrix',
           'analytics', 'work-queue', 'complaint-detail', 'maintenance',
-          'search', 'services', 'announcements', 'profile'
+          'assistant', 'search', 'services', 'announcements', 'profile'
         ],
         admin: null, // Full access
       };
@@ -3597,47 +3622,275 @@
     });
   }
 
+  let maintActiveTab = 'all';
+  let maintSearchQuery = '';
+  let maintDeptFilter = '';
+
   function renderMaintenance() {
     const list = document.getElementById('maintenance-list');
-    if (!list) return;
-    list.innerHTML = '';
-    maintenance.forEach((m) => {
-      const item = document.createElement('div');
-      item.className = 'card';
-      item.style.marginBottom = '0.75rem';
-      item.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-          <span class="status-tag status-inprogress">${m.status}</span>
-          <span class="font-mono" style="font-size:0.72rem; color:var(--text-subtle);">Scheduled: ${m.date}</span>
-        </div>
-        <h3 style="font-size:1rem; font-weight:800; margin: 4px 0;">${m.title}</h3>
-        <div style="font-size:0.75rem; color:var(--primary); font-weight:600; margin-bottom: 6px;">Area: ${m.area}</div>
-        <p style="font-size:0.78rem; color:var(--text-muted); line-height:1.4;">${m.note}</p>
-      `;
-      list.appendChild(item);
+    const openModalBtn = document.getElementById('open-maint-modal-btn');
+    const modal = document.getElementById('maintenance-modal');
+    const form = document.getElementById('maintenance-form');
+    const searchInput = document.getElementById('maint-search-input');
+    const deptSelect = document.getElementById('maint-dept-filter');
+    const dateInput = document.getElementById('maint-input-date');
+
+    // KPI elements
+    const kpiTotal = document.getElementById('maint-kpi-total');
+    const kpiActive = document.getElementById('maint-kpi-active');
+    const kpiScheduled = document.getElementById('maint-kpi-scheduled');
+    const kpiCompleted = document.getElementById('maint-kpi-completed');
+
+    if (kpiTotal) kpiTotal.textContent = maintenance.length;
+    if (kpiActive) kpiActive.textContent = maintenance.filter((m) => m.status === 'In Progress').length;
+    if (kpiScheduled) kpiScheduled.textContent = maintenance.filter((m) => m.status === 'Scheduled').length;
+    if (kpiCompleted) kpiCompleted.textContent = maintenance.filter((m) => m.status === 'Completed').length;
+
+    // Filter tabs listener
+    document.querySelectorAll('.maint-tab-btn').forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll('.maint-tab-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        maintActiveTab = btn.getAttribute('data-maint-tab') || 'all';
+        renderMaintenance();
+      };
     });
 
-    const publishBtn = document.getElementById('publish-maint-btn');
-    if (publishBtn) {
-      publishBtn.onclick = () => {
-        const title = prompt('Maintenance Title:');
-        const area = prompt('Campus Area:');
-        const note = prompt('Impact note & timing:');
-        if (title && area) {
-          maintenance.unshift({
-            id: 'maint_' + Date.now(),
-            title: title,
-            area: area,
-            date: new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0],
-            note: note || 'Scheduled work.',
-            created_by: currentUser.email,
-            status: 'Scheduled',
-          });
-          saveAll();
-          showToast('Maintenance notice published!');
-          renderMaintenance();
-        }
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        maintSearchQuery = (e.target.value || '').trim().toLowerCase();
+        renderMaintenanceList();
       };
+    }
+
+    if (deptSelect) {
+      deptSelect.onchange = (e) => {
+        maintDeptFilter = e.target.value || '';
+        renderMaintenanceList();
+      };
+    }
+
+    if (openModalBtn && modal) {
+      openModalBtn.onclick = () => {
+        if (dateInput && !dateInput.value) {
+          dateInput.value = new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0];
+        }
+        modal.classList.add('open');
+      };
+    }
+
+    if (form) {
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const title = document.getElementById('maint-input-title').value.trim();
+        const category = document.getElementById('maint-input-category').value;
+        const impact = document.getElementById('maint-input-impact').value;
+        const area = document.getElementById('maint-input-area').value.trim();
+        const date = document.getElementById('maint-input-date').value;
+        const timeWindow = document.getElementById('maint-input-time').value.trim();
+        const lead = document.getElementById('maint-input-lead').value.trim();
+        const note = document.getElementById('maint-input-note').value.trim();
+        const broadcast = document.getElementById('maint-input-broadcast').checked;
+
+        if (!title || !area || !date) return;
+
+        const newMaint = {
+          id: 'maint_' + Date.now(),
+          title: title,
+          category: category,
+          area: area,
+          date: date,
+          time_window: timeWindow || '09:00 AM - 01:00 PM',
+          impact: impact,
+          lead_name: lead || ((currentUser && currentUser.name) ? `${currentUser.name} (${currentUser.department || 'Duty Desk'})` : 'Campus Facility Specialist'),
+          note: note,
+          created_by: (currentUser && currentUser.email) || 'staff@campus.com',
+          status: 'Scheduled',
+          created_at: new Date().toISOString(),
+        };
+
+        maintenance.unshift(newMaint);
+
+        if (broadcast) {
+          smsLogs.unshift({
+            id: 'gw_' + Date.now(),
+            channel: 'WhatsApp',
+            recipient: `All Residents (${area})`,
+            type: 'MAINTENANCE_BROADCAST',
+            message: `⚠️ *CampusCare Facility Notice*: Scheduled ${category} maintenance on *${date}* (${newMaint.time_window}) at *${area}*. Expected impact: ${impact}. Details: "${note}".`,
+            status: 'Delivered (Broadcast)',
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        addAudit('MAINTENANCE_WINDOW_SCHEDULED', '—', `Title="${title}", Area="${area}", Impact="${impact}"`);
+        saveAll();
+        showToast(`Maintenance window "${title.substring(0, 30)}..." scheduled successfully!`);
+        modal.classList.remove('open');
+        form.reset();
+        renderMaintenance();
+      };
+    }
+
+    renderMaintenanceList();
+
+    function renderMaintenanceList() {
+      if (!list) return;
+      list.innerHTML = '';
+
+      let filtered = maintenance.filter((m) => {
+        // Tab filter
+        if (maintActiveTab === 'in_progress' && m.status !== 'In Progress') return false;
+        if (maintActiveTab === 'scheduled' && m.status !== 'Scheduled') return false;
+        if (maintActiveTab === 'completed' && m.status !== 'Completed') return false;
+
+        // Dept filter
+        if (maintDeptFilter && (m.category || '') !== maintDeptFilter) return false;
+
+        // Search query
+        if (maintSearchQuery) {
+          const matchTitle = (m.title || '').toLowerCase().includes(maintSearchQuery);
+          const matchArea = (m.area || '').toLowerCase().includes(maintSearchQuery);
+          const matchNote = (m.note || '').toLowerCase().includes(maintSearchQuery);
+          const matchLead = (m.lead_name || '').toLowerCase().includes(maintSearchQuery);
+          if (!matchTitle && !matchArea && !matchNote && !matchLead) return false;
+        }
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 3rem 1.5rem; text-align: center; color: var(--text-muted); background: var(--bg-surface); border: 1px dashed var(--border); border-radius: var(--radius-md);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔧</div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text);">No maintenance windows found</div>
+            <div style="font-size: 0.78rem; margin-top: 0.25rem;">No scheduled service outages match the selected filter criteria.</div>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach((m) => {
+        const isStaffOrAdmin = currentUser && (currentUser.role === 'staff' || currentUser.role === 'department_head' || currentUser.role === 'admin');
+        const statusClass = m.status === 'Completed' ? 'status-resolved' : m.status === 'In Progress' ? 'status-inprogress' : 'status-pending';
+        const impactBadge = (m.impact || '').includes('High')
+          ? '<span class="status-tag status-escalated" style="font-size: 0.65rem;">🔴 High Outage</span>'
+          : (m.impact || '').includes('Medium')
+          ? '<span class="status-tag status-inprogress" style="font-size: 0.65rem; background:#fff7ed; color:#c2410c;">🟠 Medium Impact</span>'
+          : '<span class="status-tag status-resolved" style="font-size: 0.65rem;">🟢 Routine Window</span>';
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.justifyContent = 'space-between';
+        card.style.borderTop = m.status === 'In Progress' ? '3px solid #f59e0b' : m.status === 'Completed' ? '3px solid #16a34a' : '3px solid var(--primary)';
+        card.innerHTML = `
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+              <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                <span class="status-tag ${statusClass}" style="font-size: 0.68rem; font-weight: 800;">${m.status.toUpperCase()}</span>
+                ${impactBadge}
+              </div>
+              <span class="font-mono" style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">📅 ${m.date}</span>
+            </div>
+
+            <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text); line-height: 1.35; margin-bottom: 0.45rem;">${escapeHtml(m.title)}</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span>📍</span> <b>Target Facility:</b> <span style="color: var(--text); font-weight: 600;">${escapeHtml(m.area)}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span>⏱️</span> <b>Window Timing:</b> <span class="font-mono font-bold" style="color: var(--primary);">${escapeHtml(m.time_window || 'Operational Hours')}</span>
+              </div>
+              ${m.lead_name ? `
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <span>👷</span> <b>Duty Specialist:</b> <span>${escapeHtml(m.lead_name)}</span>
+                </div>
+              ` : ''}
+            </div>
+
+            <div style="background: var(--bg-subtle); border-radius: var(--radius-sm); padding: 0.75rem; font-size: 0.78rem; line-height: 1.5; color: var(--text-muted); margin-bottom: 0.85rem; border-left: 3px solid var(--primary);">
+              <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--text-subtle); margin-bottom: 2px;">Scope & Alternative Arrangements:</div>
+              <div>${escapeHtml(m.note)}</div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.7rem; color: var(--text-subtle); font-family: var(--font-mono);">Unit: ${escapeHtml(m.category || 'Maintenance')}</div>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              ${isStaffOrAdmin && m.status === 'Scheduled' ? `
+                <button type="button" class="btn btn-outline btn-sm" data-start-maint="${m.id}" style="color: #b45309; border-color: #fde68a;">
+                  ⚡ Start Window
+                </button>
+              ` : isStaffOrAdmin && m.status === 'In Progress' ? `
+                <button type="button" class="btn btn-success btn-sm" data-complete-maint="${m.id}">
+                  ✓ Mark Completed
+                </button>
+              ` : ''}
+              ${isStaffOrAdmin ? `
+                <button type="button" class="btn btn-outline btn-sm" data-broadcast-maint="${m.id}" title="Broadcast SMS to affected residents">
+                  📢 Broadcast
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+
+        list.appendChild(card);
+      });
+
+      // Bind Start Window buttons
+      list.querySelectorAll('[data-start-maint]').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-start-maint');
+          const item = maintenance.find((x) => x.id === id);
+          if (item) {
+            item.status = 'In Progress';
+            addAudit('MAINTENANCE_WINDOW_STARTED', '—', `Started "${item.title}" at ${item.area}`);
+            saveAll();
+            showToast(`Maintenance window "${item.title.substring(0, 25)}..." is now IN PROGRESS!`);
+            renderMaintenance();
+          }
+        };
+      });
+
+      // Bind Mark Completed buttons
+      list.querySelectorAll('[data-complete-maint]').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-complete-maint');
+          const item = maintenance.find((x) => x.id === id);
+          if (item) {
+            item.status = 'Completed';
+            addAudit('MAINTENANCE_WINDOW_COMPLETED', '—', `Completed "${item.title}" at ${item.area}`);
+            saveAll();
+            showToast(`Maintenance window marked COMPLETED! Facility restored to operation.`);
+            renderMaintenance();
+          }
+        };
+      });
+
+      // Bind Broadcast buttons
+      list.querySelectorAll('[data-broadcast-maint]').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-broadcast-maint');
+          const item = maintenance.find((x) => x.id === id);
+          if (item) {
+            smsLogs.unshift({
+              id: 'gw_' + Date.now(),
+              channel: 'WhatsApp',
+              recipient: `Residents (${item.area})`,
+              type: 'STAFF_MAINT_ALERT',
+              message: `🛠️ *CampusCare Service Alert*: Maintenance update for *${item.area}*. Status: *${item.status}*. Scope: "${item.note}". For urgent assistance contact ${item.lead_name || 'Duty Desk Ext. 204'}.`,
+              status: 'Delivered (Read)',
+              timestamp: new Date().toISOString(),
+            });
+            saveAll();
+            showToast(`Broadcast notification dispatched to all students in ${item.area}!`);
+          }
+        };
+      });
     }
   }
 
@@ -3801,113 +4054,153 @@
     return result.join('');
   }
 
+  let assistantHistory = [];
+
   function analyzePolicyQuestionClientSide(q) {
-    const lq = q.toLowerCase();
+    const cleanQ = (q || '').trim();
+    const lq = cleanQ.toLowerCase();
 
-    if (lq.includes('water') || lq.includes('leak') || lq.includes('plumbing') || lq.includes('pipe') || lq.includes('tap') || lq.includes('drain') || lq.includes('bathroom') || lq.includes('toilet') || lq.includes('shower')) {
-      return `**Analysis: Hostel & Campus Infrastructure (Water & Sanitation Issue)**\n\n` +
-        `• **Designated Category:** Infrastructure / Hostel Maintenance\n` +
-        `• **Target SLA:** **Critical (4 Hours)** for whole-floor or block water outages; **High (12 Hours)** for room-level leakages, tap replacements, or drain blockages.\n` +
-        `• **Assigned Department:** Estate Maintenance & Plumbing Duty Staff.\n\n` +
-        `**Recommended Action:**\n` +
-        `1. Click **New Grievance** in the sidebar.\n` +
-        `2. Select **Hostel** or **Infrastructure**, describe the exact block and room number, and set Priority to **High** or **Critical**.\n` +
-        `3. You will receive an immediate live SLA countdown tracking code. If not resolved within the timer, it automatically escalates to the Chief Warden and Estate Officer.`;
+    // 1. Natural Conversational Greeting Detection
+    const greetingRegex = /^(hi+|hello+|hey+|good\s*(morning|afternoon|evening|day)|howdy|greetings|sup|yo|hi\s+there|hello\s+there)\b/i;
+    const isJustGreeting = (greetingRegex.test(lq) && cleanQ.split(/\s+/).length <= 4) || ['hi', 'hello', 'hey', 'greetings', 'help'].includes(lq);
+    if (isJustGreeting) {
+      return `**Hello! 👋 Welcome to the CampusCare AI Policy Guide.**\n\n` +
+        `I am your 24/7 intelligent campus grievance and policy advisor. How can I help you today? Please tell me what issue or question you have!\n\n` +
+        `Here are common things you can ask me:\n` +
+        `• **Filing a Grievance:** Step-by-step submission, anonymous reporting, or SLA tracking.\n` +
+        `• **Hostel Rules & Curfew:** In-time hours (8:30 PM), gate pass requests, or room maintenance.\n` +
+        `• **Mess & Food Quality:** Meal schedules, hygiene checks, or mess fee refund claims.\n` +
+        `• **Attendance & Exams:** 75% attendance rule, medical condonation, exam revaluation, or hall ticket issues.\n` +
+        `• **Wi-Fi & IT Support:** MAC address registration, speed drops, or portal login errors.\n` +
+        `• **Fees & Accounts:** Semester payment confirmation, bank UTR verification, or refund processing.\n` +
+        `• **Safety & Anti-Ragging:** Emergency contacts (+91 422 261 4300) and anonymous reporting safeguards.\n\n` +
+        `What would you like to know or resolve?`;
     }
 
-    if (lq.includes('power') || lq.includes('electric') || lq.includes('blackout') || lq.includes('light') || lq.includes('fan') || lq.includes('socket') || lq.includes('ac ') || lq.includes('air conditioner') || lq.includes('switchboard') || lq.includes('spark')) {
-      return `**Analysis: Electrical & Power Outage Report**\n\n` +
-        `• **Designated Category:** Infrastructure (Electrical Cell)\n` +
-        `• **Target SLA:** **Critical (4 Hours)** for total room/corridor blackouts, spark hazards, or tripping circuit breakers; **Medium (48 Hours)** for single socket or fan capacitor maintenance.\n` +
-        `• **Duty Officer:** Campus Substation & Electrical Duty Engineer.\n\n` +
-        `**Resolution Procedure:**\n` +
-        `Submit a ticket under **Infrastructure** with tag \`Electrical\`. Electrical maintenance units work on continuous rotating campus shifts (24/7 coverage for student residential zones).`;
+    // 2. Hostel Curfew, Timings, Gate Pass & Room Relocation
+    if (lq.includes('curfew') || lq.includes('gate pass') || lq.includes('in-time') || lq.includes('intime') || lq.includes('late entry') || lq.includes('night out') || lq.includes('leave') || lq.includes('room change') || lq.includes('roommate')) {
+      if (lq.includes('room change') || lq.includes('roommate')) {
+        return `**Hostel Policy: Room Relocation & Roommate Disputes**\n\n` +
+          `• **Application Window:** Room change requests are accepted within the first 30 days of each academic semester.\n` +
+          `• **Grounds Accepted:** Documented medical reasons, extreme academic schedule conflicts, or mutual agreement with another resident.\n` +
+          `• **Procedure:** Submit a written application endorsed by your Resident Warden to the Chief Warden Office (Residential Complex Room 102).\n` +
+          `• **Target SLA:** **Medium (48 Hours)** for room relocation verification.\n` +
+          `• **Contact:** Chief Warden Secretariat (Ext. 201 · warden@campus.com).`;
+      }
+      return `**Hostel Regulations: Curfew Timings & Digital Gate Pass Protocol**\n\n` +
+        `• **Mandatory Curfew (In-Time):** **8:30 PM** sharp for all residential hostel blocks on weekdays and Sundays; **9:00 PM** on Saturdays.\n` +
+        `• **Biometric Punch-in:** Students must record their biometric punch or scan their CampusCare ID card at the hostel turnstile upon entry.\n` +
+        `• **Late Gate Pass Application:** Emergency or authorized academic gate pass requests must be submitted through the portal before **6:00 PM** and require parent SMS acknowledgement.\n` +
+        `• **Disciplinary Clause:** First late entry without a pass incurs a formal counseling advisory; repeated late entries require parent notification and hostel committee review.\n` +
+        `• **Emergency Support:** If detained on campus for official project work or lab experiments, obtain a sign-off slip from your Faculty Guide.`;
     }
 
-    if (lq.includes('wifi') || lq.includes('wi-fi') || lq.includes('internet') || lq.includes('lan') || lq.includes('network') || lq.includes('portal') || lq.includes('login') || lq.includes('lms') || lq.includes('erp') || lq.includes('email') || lq.includes('password')) {
-      return `**Analysis: IT Infrastructure & Campus Network Query**\n\n` +
-        `• **Designated Category:** IT Support\n` +
-        `• **Target SLA:** **High (12 Hours)** during academic exam/submission weeks, otherwise **Medium (48 Hours)**.\n` +
-        `• **Responsible Unit:** Center for Digital Excellence & Network Operations Center (NOC).\n\n` +
-        `**Steps to Resolve:**\n` +
-        `Provide your MAC address, hostel wing, or portal error code in the ticket description. NOC engineers verify IP allocation tables and reset authentication profiles directly.`;
+    // 3. Attendance, Medical Condonation, Exams & Hall Tickets
+    if (lq.includes('attendance') || lq.includes('condonation') || lq.includes('medical leave') || lq.includes('hall ticket') || lq.includes('75%') || lq.includes('exam') || lq.includes('mark') || lq.includes('grade') || lq.includes('revaluation') || lq.includes('backlog') || lq.includes('supplementary')) {
+      if (lq.includes('attendance') || lq.includes('condonation') || lq.includes('medical leave') || lq.includes('75%')) {
+        return `**University Academic Policy: Attendance & Medical Condonation**\n\n` +
+          `• **Mandatory Threshold:** **75% minimum aggregate attendance** in each registered course to be eligible for End-Semester Examinations.\n` +
+          `• **Medical Condonation Range (65% – 74%):** Permitted strictly on genuine medical grounds (hospitalization/certified illness) or authorized university sports/symposium representation.\n` +
+          `• **Condonation Filing Deadline:** Original medical certificate issued by a registered medical practitioner must be submitted to the Head of Department (HoD) within **5 working days** of returning to campus.\n` +
+          `• **Critical Clause (< 65% Attendance):** Students falling below 65% cannot be condoned under any circumstance per university regulations and must re-register (repeat) the course in subsequent semesters.\n` +
+          `• **Hall Ticket Clearance:** Once condonation is approved by the Academic Dean, the hall ticket block is lifted within **12 hours**.`;
+      }
+      return `**University Examination & Evaluation Redressal Policy**\n\n` +
+        `• **Designated Authority:** Office of the Controller of Examinations (CoE Block Ground Floor).\n` +
+        `• **Script Viewing & Retotaling:** Students may apply for physical/digital answer script viewing within **7 calendar days** of grade publication via the Student Portal.\n` +
+        `• **Official Revaluation:** If an evaluation discrepancy is noted, revaluation is conducted by an independent senior examiner. If the revised score increases by ≥ 15%, the revaluation application fee is 100% refunded to the student's bank account.\n` +
+        `• **Blocked Hall Ticket:** File an urgent ticket under **Academic** category with priority **High (12-Hour SLA)** to unblock clearance from accounts or library.`;
     }
 
-    if (lq.includes('food') || lq.includes('mess') || lq.includes('canteen') || lq.includes('dining') || lq.includes('hygiene') || lq.includes('meal') || lq.includes('cater') || lq.includes('breakfast') || lq.includes('lunch') || lq.includes('dinner')) {
-      return `**Analysis: Mess Food Quality & Dining Hygiene Inquiry**\n\n` +
-        `• **Designated Category:** Food / Mess Services\n` +
-        `• **Target SLA:** **High (12 Hours)** with mandatory Food Safety Officer kitchen inspection.\n` +
-        `• **Oversight Body:** Joint Student Mess Committee & University Health Officer.\n\n` +
-        `**University Regulations:**\n` +
-        `Students can file tickets regarding meal hygiene, raw ingredient standards, or foreign objects. Photographic evidence is strongly recommended and attaches directly to your ticket for surprise audit verification.`;
+    // 4. Wi-Fi, Internet & IT Support
+    if (lq.includes('wifi') || lq.includes('wi-fi') || lq.includes('internet') || lq.includes('lan') || lq.includes('network') || lq.includes('portal') || lq.includes('login') || lq.includes('lms') || lq.includes('erp') || lq.includes('mac') || lq.includes('403') || lq.includes('speed')) {
+      return `**Campus IT & High-Speed Wi-Fi Redressal Policy**\n\n` +
+        `• **Campus SSID:** \`CampusCare-Secure-5G\` and \`eduroam\` across all academic blocks and hostels.\n` +
+        `• **Device MAC Registration:** Up to 3 personal devices (laptop, tablet, smartphone) can be registered per student at \`portal.campus.com/device-reg\` using institutional credentials.\n` +
+        `• **Troubleshooting Error 403 / Captive Portal Loop:**\n` +
+        `  1. Forget the network and re-connect to \`CampusCare-Secure-5G\`.\n` +
+        `  2. Open a browser and navigate to \`http://1.1.1.1\` to trigger the institutional captive portal.\n` +
+        `  3. If MAC binding has expired, clear browser cache or submit your MAC address in a support ticket.\n` +
+        `• **Target SLA:** **High (12 Hours)** during academic tests/submissions, otherwise **Medium (48 Hours)**.\n` +
+        `• **IT Helpdesk:** Technology Block Room 104 (Ext. 101 / 102 · ithelp@campus.com).`;
     }
 
-    if (lq.includes('mark') || lq.includes('grade') || lq.includes('exam') || lq.includes('attendance') || lq.includes('professor') || lq.includes('faculty') || lq.includes('teacher') || lq.includes('academic') || lq.includes('internal') || lq.includes('subject') || lq.includes('course') || lq.includes('test')) {
-      return `**Analysis: Academic Redressal & Evaluation Policy**\n\n` +
-        `• **Designated Category:** Academic\n` +
-        `• **Target SLA:** **Medium (48 Hours)** for internal assessment re-check or attendance audit.\n` +
-        `• **Jurisdiction:** Head of Department (HoD) & Academic Dean.\n\n` +
-        `**Official Redressal Workflow:**\n` +
-        `1. File under **Academic** category specifying Course Code, Subject Title, and Faculty Name.\n` +
-        `2. The HoD is bound by university ordinance to review verified attendance registers or answer scripts within 48 hours.\n` +
-        `3. If unresolved, it escalates to the Academic Grievance Cell presided by the Controller of Examinations.`;
+    // 5. Mess & Food Services
+    if (lq.includes('food') || lq.includes('mess') || lq.includes('canteen') || lq.includes('dining') || lq.includes('hygiene') || lq.includes('meal') || lq.includes('breakfast') || lq.includes('lunch') || lq.includes('dinner') || lq.includes('cater')) {
+      return `**Campus Dining & Food Safety Redressal Policy**\n\n` +
+        `• **Designated Category:** Food / Mess Services (Central Dining Complex).\n` +
+        `• **Quality Standards:** Mandatory adherence to FSSAI hygiene guidelines. Water purifiers and cold storage undergo automated daily temperature and TDS logging.\n` +
+        `• **Grievance Resolution SLA:** **High (12 Hours)** for menu/taste disputes; **Immediate (4 Hours)** for foreign objects or foodborne illness reports with mandatory on-site inspection by the University Health Officer.\n` +
+        `• **Student Mess Committee:** Student representatives inspect kitchen prep zones every Tuesday and Friday.\n` +
+        `• **Filing Advice:** Attach a clear photograph to your ticket in **New Grievance** for instant quality audit dispatch.`;
     }
 
-    if (lq.includes('fee') || lq.includes('payment') || lq.includes('receipt') || lq.includes('refund') || lq.includes('scholarship') || lq.includes('fine') || lq.includes('tuition') || lq.includes('dues') || lq.includes('challan')) {
-      return `**Analysis: Fee Dispute & Financial Redressal Procedure**\n\n` +
-        `• **Designated Category:** Fees & Accounts\n` +
-        `• **Target SLA:** **Medium (48 Hours)** for duplicate debit verification; **120 Hours** for refund disbursement.\n` +
-        `• **Department:** Finance & Accounts Bureau.\n\n` +
-        `**Requirements:**\n` +
-        `Attach your Bank UTR / Transaction Reference Number, payment date, and Student ID. The Finance Office reconciles gateway logs directly against ERP student ledger accounts.`;
+    // 6. Water, Plumbing & Sanitation
+    if (lq.includes('water') || lq.includes('leak') || lq.includes('plumb') || lq.includes('pipe') || lq.includes('tap') || lq.includes('drain') || lq.includes('bathroom') || lq.includes('toilet') || lq.includes('geyser') || lq.includes('flush')) {
+      return `**Hostel & Campus Sanitation / Plumbing Redressal Directive**\n\n` +
+        `• **Designated Category:** Hostel Maintenance / Infrastructure\n` +
+        `• **Resolution SLA:** **Critical (4 Hours)** for complete wing/floor water supply interruption; **High (12 Hours)** for room-level tap leakage, geyser failure, or blocked drain.\n` +
+        `• **Duty Specialists:** Estate Plumbing Response Cell (Ext. 202 / 204).\n` +
+        `• **Procedure:** File under **Hostel**, specify exact block, floor, and room number. Technicians carry digital work orders and require your OTP or verification sign-off upon completion.\n` +
+        `• **Damage Relief:** If water inundation caused damage to personal study materials, file a claim in **Relief & Compensation** for institutional reimbursement.`;
     }
 
-    if (lq.includes('ragging') || lq.includes('bully') || lq.includes('harass') || lq.includes('threat') || lq.includes('safety') || lq.includes('fight') || lq.includes('abuse') || lq.includes('security') || lq.includes('emergency') || lq.includes('police')) {
-      return `**Analysis: Anti-Ragging & Emergency Safety Directive (Zero Tolerance)**\n\n` +
-        `• **Designated Category:** Safety & Security (UGC/Statutory Mandate)\n` +
-        `• **Target SLA:** **CRITICAL (Immediate response, 4-Hour maximum investigation)**\n` +
-        `• **Jurisdiction:** Anti-Ragging Committee, Dean of Student Affairs, Chief Security Officer.\n\n` +
-        `**Protective Safeguards:**\n` +
-        `• You can submit this grievance **100% Anonymously** by ticking the anonymous option on the filing form.\n` +
-        `• Your identity is protected under the Whistleblower Security Charter.\n` +
-        `• If you are in immediate distress, you can also contact the 24/7 Campus Security Control Room directly at +91 422 261 4300.`;
+    // 7. Power, Electricity & Appliances
+    if (lq.includes('power') || lq.includes('electric') || lq.includes('blackout') || lq.includes('light') || lq.includes('fan') || lq.includes('ac ') || lq.includes('air condition') || lq.includes('spark') || lq.includes('switch') || lq.includes('socket') || lq.includes('heater')) {
+      return `**Electrical Safety & Campus Power Supply Policy**\n\n` +
+        `• **Designated Category:** Infrastructure (Electrical Maintenance Cell)\n` +
+        `• **Emergency Hazard Protocol:** If sparking, burning odor, or smoke occurs, immediately isolate the circuit and call Substation Duty (+91 94432 11002 / Ext. 204). Handled as **Critical (4-Hour SLA)**.\n` +
+        `• **Hostel Appliance Rules:** High-wattage heating appliances (induction stoves, immersion coils, electric irons) are prohibited in hostel dormitories for fire safety.\n` +
+        `• **Routine Repairs:** Single light bulb, fan capacitor, or power socket repairs carry a **48-Hour SLA**. File under **Infrastructure** with tag \`Electrical\`.`;
     }
 
-    if (lq.includes('bus') || lq.includes('transport') || lq.includes('driver') || lq.includes('route') || lq.includes('commute') || lq.includes('shuttle') || lq.includes('pass')) {
-      return `**Analysis: Campus Transportation & Shuttle Service Policy**\n\n` +
-        `• **Designated Category:** Transport\n` +
-        `• **Target SLA:** **Medium (48 Hours)**; **High (12 Hours)** if entire route is stranded.\n` +
-        `• **Responsible Officer:** Transport Officer & Fleet Supervisor.\n\n` +
-        `**Guidance:**\n` +
-        `Please mention Route Number, Bus Registration, and Boarding Stop. GPS telemetry logs will be extracted to verify departure timings and driver conduct.`;
+    // 8. Anti-Ragging & Emergency Safety
+    if (lq.includes('ragging') || lq.includes('bully') || lq.includes('harass') || lq.includes('threat') || lq.includes('safety') || lq.includes('fight') || lq.includes('emergency') || lq.includes('police') || lq.includes('security') || lq.includes('abuse')) {
+      return `**Strict Anti-Ragging Directive & Emergency Safety (Statutory Zero-Tolerance)**\n\n` +
+        `• **Legal Mandate:** Karunya maintains absolute zero-tolerance under Supreme Court guidelines and UGC Anti-Ragging Regulations 2009.\n` +
+        `• **Anonymous Reporting:** You can file **100% Anonymously** by ticking "File Anonymously" in the grievance form. Your student identity is completely hidden from public and staff views.\n` +
+        `• **Target SLA:** **Immediate Response (4-Hour Maximum Formal Inquiry)**.\n` +
+        `• **24x7 Emergency Hotlines:**\n` +
+        `  - Campus Security Control Room: **+91 422 261 4300** (Ext. 900)\n` +
+        `  - National Anti-Ragging Toll-Free Helpline: **1800-180-5522**\n` +
+        `  - Dean of Student Affairs Emergency Mobile: **+91 94432 11001**\n` +
+        `• All reported cases trigger immediate disciplinary proceedings and direct oversight by the Vice-Chancellor's Special Committee.`;
     }
 
-    if (lq.includes('hostel') || lq.includes('room') || lq.includes('warden') || lq.includes('curfew') || lq.includes('roommate') || lq.includes('bed') || lq.includes('mess card')) {
-      return `**Analysis: Hostel Resident Affairs & Accommodation Policy**\n\n` +
-        `• **Designated Category:** Hostel\n` +
-        `• **Target SLA:** **Medium (48 Hours)** for room relocation or furniture repair; **Critical (4 Hours)** for security or lock failure.\n` +
-        `• **Responsible Official:** Resident Warden & Chief Warden.\n\n` +
-        `**Procedure:**\n` +
-        `State your Hostel Name, Wing, and Room number. Resident Wardens are mandated to inspect premises on a daily basis between 5:00 PM and 7:00 PM.`;
+    // 9. Fees, Payments, Refunds & Scholarships
+    if (lq.includes('fee') || lq.includes('payment') || lq.includes('receipt') || lq.includes('refund') || lq.includes('scholarship') || lq.includes('fine') || lq.includes('challan') || lq.includes('dues') || lq.includes('tuition') || lq.includes('utr')) {
+      return `**Campus Finance & Student Accounts Policy**\n\n` +
+        `• **Designated Category:** Fees & Accounts (Finance Pavilion Counters 1 - 4)\n` +
+        `• **Payment Verification SLA:** **Medium (48 Hours)** for automated bank UTR reconciliation.\n` +
+        `• **Refund Disbursement SLA:** **120 Hours (5 Business Days)** for excess semester fees or caution deposit returns.\n` +
+        `• **Requirements for Redressal:** State your 12-digit Bank Transaction / UTR number, payment date, and Student Register Number in your complaint.\n` +
+        `• **Finance Desk Contact:** Accounts Bureau (Ext. 501 · accounts@campus.com). Office hours: Monday to Friday, 9:00 AM - 4:30 PM.`;
     }
 
-    if (lq.includes('reopen') || lq.includes('not fixed') || lq.includes('dissatisfied') || lq.includes('unsatisfied') || lq.includes('verify') || lq.includes('close') || lq.includes('closure')) {
-      return `**Analysis: Resolution Verification Loop Policy**\n\n` +
-        `• **How it works:** In CampusCare V3, staff members *cannot* unilaterally close a complaint.\n` +
-        `• When a staff officer changes a status to **Resolved**, the ticket enters a student testing period.\n` +
-        `• You can inspect the physical work, and if the issue persists, simply open the ticket and click **"Reopen Ticket"**.\n` +
-        `• Reopened tickets receive an automatic urgency bump and alert the Department Head immediately for supervisory intervention.`;
+    // 10. Transportation & Campus Shuttle Fleet
+    if (lq.includes('bus') || lq.includes('transport') || lq.includes('driver') || lq.includes('route') || lq.includes('pass') || lq.includes('commute') || lq.includes('shuttle')) {
+      return `**University Transport Fleet & Bus Pass Policy**\n\n` +
+        `• **Designated Category:** Transport Services (Central Transport Depot Bay 1)\n` +
+        `• **Resolution SLA:** **High (12 Hours)** for bus breakdown or route cancellations; **Medium (48 Hours)** for semester bus pass processing.\n` +
+        `• **GPS Fleet Tracking:** All campus buses are equipped with live GPS transponders. Timings are synchronized with academic schedules.\n` +
+        `• **Filing Advice:** Include Bus Route Number and Boarding Stop in your ticket.\n` +
+        `• **Transport Helpdesk:** Transport Supervisor (Ext. 401 · transport@campus.com).`;
     }
 
-    if (lq.includes('sla') || lq.includes('escalat') || lq.includes('deadline') || lq.includes('overdue') || lq.includes('delay') || lq.includes('timer') || lq.includes('time limit')) {
-      return `**Analysis: Guaranteed SLA Matrix & Auto-Escalation Engine**\n\n` +
-        `• **Critical:** 4 Hours (safety, water outages, severe blackout, ragging)\n` +
-        `• **High:** 12 Hours (exam IT issues, dining hygiene, lab gear)\n` +
-        `• **Medium:** 48 Hours (room repairs, fee receipt matching, transport)\n` +
-        `• **Low:** 120 Hours (general suggestions, library acquisitions)\n\n` +
-        `**Auto-Escalation:** If a timer reaches 00:00:00 without closure, the ticket turns red (\`Overdue\`) and triggers escalation notifications up the hierarchy: Assigned Staff ➔ Department Head ➔ Dean of Student Affairs.`;
+    // 11. SLA Timers, Auto-Escalation & Verification Loop
+    if (lq.includes('sla') || lq.includes('escalat') || lq.includes('reopen') || lq.includes('delay') || lq.includes('deadline') || lq.includes('verify') || lq.includes('timer') || lq.includes('ombudsman')) {
+      return `**CampusCare SLA Guarantees & Verification Loop Policy**\n\n` +
+        `• **Resolution SLAs:**\n` +
+        `  - 🔴 **Critical (4 Hours):** Severe safety hazards, total water/electricity blackout, anti-ragging.\n` +
+        `  - 🟠 **High (12 Hours):** Wi-Fi during exam week, mess food hygiene, classroom equipment.\n` +
+        `  - 🟣 **Medium (48 Hours):** Standard room repairs, transport pass, fee receipt reconciliation.\n` +
+        `  - 🔵 **Low (120 Hours):** General suggestions, library acquisitions.\n` +
+        `• **Automated Escalation:** If an SLA timer reaches 00:00:00 without resolution, the ticket auto-escalates to the Department Head, then Dean of Student Affairs.\n` +
+        `• **Student Verification Power:** Staff *cannot* unilaterally close a ticket. Once marked "Resolved", students have 48 hours to inspect the work and click **"Reopen Ticket"** if not properly completed.\n` +
+        `• **Ombudsman Appeals:** If an issue is unjustly dismissed, you can file a formal appeal to the University Ombudsman Tribunal for a mandatory hearing.`;
     }
 
+    // 12. Trends & Graphical Telemetry
     if (lq.includes('graph') || lq.includes('grap') || lq.includes('chart') || lq.includes('trend') || lq.includes('plot') || lq.includes('visual') || lq.includes('metric')) {
       return `**📊 CampusCare Grievance Trend & SLA Graphical Analysis**\n\n` +
         `Here is the graphical telemetry and resolution trajectory across all university departments:\n\n` +
@@ -3924,30 +4217,46 @@
         `  - 🟠 **High Urgency (12h SLA):** 93.1% on-time (Avg. 7.8 hrs)\n` +
         `  - 🟣 **Medium Operational (48h SLA):** 95.2% on-time (Avg. 26.1 hrs)\n` +
         `  - 🔵 **Low / Routine (120h SLA):** 98.1% on-time (Avg. 54.0 hrs)\n\n` +
-        `• **Department On-Time Leaderboard:**\n` +
-        `  - 🏠 Hostel Maintenance: 96% On-Time\n` +
-        `  - 💻 IT Support & NOC: 94% On-Time\n` +
-        `  - ⚡ Electrical & Civil: 95% On-Time\n` +
-        `  - 💳 Finance / Accounts: 92% On-Time\n` +
-        `  - 📚 Academic Affairs: 97% On-Time\n\n` +
         `Interactive SVG curves, category donuts, and department leaderboards are rendered live on your **Dashboard** and in the **Trends & SLA** section.`;
     }
 
-    // Dynamic tailored synthesis for any other questions
-    const cleanQ = q.replace(/[?.,!]/g, '').trim();
-    return `**Analysis of Your Inquiry: "${q.trim()}"**\n\n` +
-      `Thank you for consulting the CampusCare AI Policy Guide. Here is the operational analysis for your inquiry regarding "${cleanQ}":\n\n` +
-      `• **Assessment:** This matter falls under university campus policy and can be officially tracked and resolved through the CampusCare system.\n` +
-      `• **Recommended Action:** Click **New Grievance** in the sidebar. Select the appropriate category, enter the exact campus location or course/hostel details, and submit your complaint.\n` +
-      `• **Real-Time SLA Commitment:** Your grievance will receive an immediate live countdown timer (ranging from 4 hours for urgent hazards up to 48 hours for standard requests).\n` +
-      `• **Guaranteed Redressal:** If the deadline is not met by the assigned department, our automated escalation matrix immediately notifies the Department Head and the Dean of Student Affairs.`;
+    // 13. Dynamic Tailored Synthesis for Any Other Inquiry
+    return `**CampusCare Policy Guidance: "${cleanQ}"**\n\n` +
+      `Thank you for asking! Here is the official policy and redressal workflow for your inquiry:\n\n` +
+      `• **Institutional Domain:** Campus Administration & Student Welfare Services.\n` +
+      `• **How to Proceed:** Navigate to **New Grievance** in the sidebar. Enter the details of your request, choose the appropriate category, and submit.\n` +
+      `• **Real-Time SLA Commitment:** Your submission receives an automated priority rating with a guaranteed resolution deadline (from 4 hours for urgent issues up to 48 hours for standard requests).\n` +
+      `• **Supervisory Oversight:** The Department Head monitors all ticket timers. If a deadline expires without resolution, it auto-escalates to the Dean of Student Affairs.\n` +
+      `• **Need Direct Assistance?** Check the **Service Directory** for direct university department phone extensions and office locations.`;
   }
 
   function renderAssistant() {
     const input = document.getElementById('assistant-input');
     const msgList = document.getElementById('assistant-messages');
     const sendBtn = document.getElementById('assistant-send-btn');
+    const roleBadge = document.getElementById('assistant-role-context-badge');
     if (!sendBtn || !input || !msgList) return;
+
+    if (roleBadge) {
+      const r = (currentUser && currentUser.role) || 'student';
+      if (r === 'student') {
+        roleBadge.textContent = '🎓 Student Guidance Mode';
+        roleBadge.style.background = 'var(--primary-subtle)';
+        roleBadge.style.color = 'var(--primary)';
+      } else if (r === 'staff') {
+        roleBadge.textContent = '🛠️ Staff Technical & Inspection Mode';
+        roleBadge.style.background = '#ecfdf5';
+        roleBadge.style.color = '#065f46';
+      } else if (r === 'department_head') {
+        roleBadge.textContent = '👔 HOD Supervisory & Escalation Mode';
+        roleBadge.style.background = '#fff7ed';
+        roleBadge.style.color = '#c2410c';
+      } else {
+        roleBadge.textContent = '🛡️ University Administration Mode';
+        roleBadge.style.background = '#eff6ff';
+        roleBadge.style.color = '#1d4ed8';
+      }
+    }
 
     // Bind prompt suggestion chips
     document.querySelectorAll('.assistant-chip').forEach((chip) => {
@@ -3994,7 +4303,8 @@
           body: JSON.stringify({
             question: q,
             role: currentUser ? currentUser.role : 'Student',
-            department: currentUser ? currentUser.department : 'General'
+            department: currentUser ? currentUser.department : 'General',
+            history: assistantHistory
           })
         });
 
@@ -4002,6 +4312,8 @@
           const data = await res.json();
           if (data && data.reply) {
             removeTyping();
+            assistantHistory.push({ role: 'user', content: q });
+            assistantHistory.push({ role: 'model', content: data.reply });
             msgList.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:0.75rem;">${formatAssistantText(data.reply)}</div>`;
             msgList.scrollTop = msgList.scrollHeight;
             return;
@@ -4015,10 +4327,126 @@
       setTimeout(() => {
         removeTyping();
         const analyticalReply = analyzePolicyQuestionClientSide(q);
+        assistantHistory.push({ role: 'user', content: q });
+        assistantHistory.push({ role: 'model', content: analyticalReply });
         msgList.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:0.75rem;">${formatAssistantText(analyticalReply)}</div>`;
         msgList.scrollTop = msgList.scrollHeight;
-      }, 350);
+      }, 250);
     };
+  }
+
+  // Omnipresent Floating AI Policy Guide Launcher & Quick Drawer (Accessible across all views)
+  function setupFloatingAiGuide() {
+    const launcherBtn = document.getElementById('floating-ai-guide-btn');
+    const drawer = document.getElementById('floating-ai-drawer');
+    const closeBtn = document.getElementById('floating-ai-close-btn');
+    const fullscreenBtn = document.getElementById('floating-ai-fullscreen-btn');
+    const sendBtn = document.getElementById('floating-ai-send-btn');
+    const input = document.getElementById('floating-ai-input');
+    const messages = document.getElementById('floating-ai-messages');
+
+    if (!launcherBtn || !drawer) return;
+
+    launcherBtn.onclick = () => {
+      const isOpen = drawer.classList.contains('active');
+      if (isOpen) {
+        drawer.classList.remove('active');
+        drawer.setAttribute('aria-hidden', 'true');
+      } else {
+        drawer.classList.add('active');
+        drawer.setAttribute('aria-hidden', 'false');
+        if (input) setTimeout(() => input.focus(), 150);
+      }
+    };
+
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        drawer.classList.remove('active');
+        drawer.setAttribute('aria-hidden', 'true');
+      };
+    }
+
+    if (fullscreenBtn) {
+      fullscreenBtn.onclick = () => {
+        drawer.classList.remove('active');
+        drawer.setAttribute('aria-hidden', 'true');
+        navigateTo('assistant');
+      };
+    }
+
+    // Quick suggestion chips inside floating drawer
+    document.querySelectorAll('.floating-ai-chip').forEach((chip) => {
+      chip.onclick = () => {
+        const prompt = chip.getAttribute('data-prompt');
+        if (prompt && input && sendBtn) {
+          input.value = prompt;
+          sendBtn.click();
+        }
+      };
+    });
+
+    if (input && sendBtn) {
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          sendBtn.click();
+        }
+      };
+
+      sendBtn.onclick = async () => {
+        const q = (input.value || '').trim();
+        if (!q || !messages) return;
+        input.value = '';
+
+        messages.innerHTML += `<div class="chat-bubble mine" style="margin-bottom:0.65rem;">${escapeHtml(q)}</div>`;
+        messages.scrollTop = messages.scrollHeight;
+
+        const typingId = 'float-typing-' + Date.now();
+        messages.innerHTML += `<div id="${typingId}" class="chat-bubble theirs" style="margin-bottom:0.65rem; opacity:0.75; font-style:italic;">Analyzing question & campus regulations...</div>`;
+        messages.scrollTop = messages.scrollHeight;
+
+        const removeTyping = () => {
+          const el = document.getElementById(typingId);
+          if (el) el.remove();
+        };
+
+        try {
+          const res = await fetch('/api/assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              question: q,
+              role: currentUser ? currentUser.role : 'Student',
+              department: currentUser ? currentUser.department : 'General',
+              history: assistantHistory
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.reply) {
+              removeTyping();
+              assistantHistory.push({ role: 'user', content: q });
+              assistantHistory.push({ role: 'model', content: data.reply });
+              messages.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:0.65rem;">${formatAssistantText(data.reply)}</div>`;
+              messages.scrollTop = messages.scrollHeight;
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Backend assistant API unreachable, using client-side policy analyzer:', err);
+        }
+
+        setTimeout(() => {
+          removeTyping();
+          const analyticalReply = analyzePolicyQuestionClientSide(q);
+          assistantHistory.push({ role: 'user', content: q });
+          assistantHistory.push({ role: 'model', content: analyticalReply });
+          messages.innerHTML += `<div class="chat-bubble theirs" style="margin-bottom:0.65rem;">${formatAssistantText(analyticalReply)}</div>`;
+          messages.scrollTop = messages.scrollHeight;
+        }, 250);
+      };
+    }
   }
 
   function renderUsers() {
@@ -6123,6 +6551,7 @@
       setupNotificationGatewaySimulator();
       setupCompensationClaimModal();
       setupSlaTimeTravelMachine();
+      setupFloatingAiGuide();
 
       updateHeaderUser();
       updateNavigationVisibility();

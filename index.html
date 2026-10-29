@@ -36,6 +36,7 @@
           <button class="nav-link role-nav-student" data-view="student-hub">🎓 Student Hub</button>
           <button class="nav-link role-nav-student" data-view="submit">✍️ New Grievance</button>
           <button class="nav-link role-nav-student" data-view="status-board">Live Status</button>
+          <button class="nav-link role-nav-student" data-view="assistant">🤖 AI Policy Guide</button>
           <button class="nav-link role-nav-student" data-view="emergency" style="color: #dc2626; font-weight: 700;">🚨 SOS</button>
 
           <!-- Staff Specialist Links -->
@@ -156,8 +157,8 @@
             <button class="side-link" data-view="emergency" style="color: #dc2626;">
               <div class="side-link-inner"><span style="animation: pulse 2s infinite;">🚨</span> <span style="font-weight: 700; color: #dc2626;">Emergency SOS</span></div>
             </button>
-            <button class="side-link" data-view="polls">
-              <div class="side-link-inner"><span>🗳️</span> <span>Campus Polls</span></div>
+            <button class="side-link" data-view="assistant">
+              <div class="side-link-inner"><span>🤖</span> <span>AI Policy Guide</span></div>
             </button>
             <button class="side-link" data-view="search">
               <div class="side-link-inner"><span>🔍</span> <span>Search Grievances</span></div>
@@ -970,14 +971,66 @@
         <section id="view-maintenance" class="app-view">
           <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
             <div>
-              <div class="kicker">Infrastructure Windows</div>
-              <h1 class="view-title">Planned Maintenance & Service Notices</h1>
-              <p class="view-subtitle">Advance schedule of water tank scouring, network backbone migrations, electrical calibrations, and lift servicing.</p>
+              <div class="kicker">Campus Infrastructure & Field Desk</div>
+              <h1 class="view-title">Maintenance Windows & Service Outages</h1>
+              <p class="view-subtitle">Live operations schedule of water tank scouring, network backbone migrations, electrical calibrations, and building servicing.</p>
             </div>
-            <button id="publish-maint-btn" class="btn btn-primary btn-sm">+ Publish Notice</button>
+            <button id="open-maint-modal-btn" class="btn btn-primary btn-sm">+ Schedule Maintenance Window</button>
           </div>
-          <div id="maintenance-list">
-            <!-- Injected by JS -->
+
+          <!-- Maintenance KPI Summary -->
+          <div class="kpi-grid" style="margin-bottom: 1.25rem;">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Maintenance Windows</div>
+              <div id="maint-kpi-total" class="kpi-value font-mono">0</div>
+              <div class="kpi-sub">Campus facility schedules</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Active / In Progress</div>
+              <div id="maint-kpi-active" class="kpi-value font-mono" style="color: #f59e0b;">0</div>
+              <div class="kpi-sub">Outage / service active</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Upcoming Scheduled</div>
+              <div id="maint-kpi-scheduled" class="kpi-value font-mono" style="color: var(--primary);">0</div>
+              <div class="kpi-sub">Advance notices published</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Completed & Verified</div>
+              <div id="maint-kpi-completed" class="kpi-value font-mono" style="color: var(--success);">0</div>
+              <div class="kpi-sub">Restored to full operation</div>
+            </div>
+          </div>
+
+          <!-- Controls Bar: Filter Tabs & Search -->
+          <div class="card" style="padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <!-- Tabs -->
+              <div class="maint-filter-tab-bar" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm maint-tab-btn active" data-maint-tab="all">All Windows</button>
+                <button type="button" class="btn btn-sm maint-tab-btn" data-maint-tab="in_progress">⚡ In Progress</button>
+                <button type="button" class="btn btn-sm maint-tab-btn" data-maint-tab="scheduled">📅 Scheduled</button>
+                <button type="button" class="btn btn-sm maint-tab-btn" data-maint-tab="completed">✓ Completed</button>
+              </div>
+
+              <!-- Search & Category -->
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; flex: 1; max-width: 520px; justify-content: flex-end;">
+                <input type="text" id="maint-search-input" class="form-input" style="font-size: 0.78rem; padding: 0.35rem 0.65rem; min-width: 180px; flex: 1;" placeholder="🔍 Search facility, block, or issue..." />
+                <select id="maint-dept-filter" class="form-select" style="font-size: 0.78rem; padding: 0.35rem 0.65rem; min-width: 140px;">
+                  <option value="">All Categories</option>
+                  <option value="Hostel Maintenance">Hostel Maintenance</option>
+                  <option value="IT Support">IT & Network</option>
+                  <option value="Electrical">Electrical Power</option>
+                  <option value="Maintenance">Civil & Infrastructure</option>
+                  <option value="Food Services">Food Services</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Responsive Maintenance Windows Cards Grid -->
+          <div id="maintenance-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;">
+            <!-- Injected dynamically by app.js -->
           </div>
         </section>
 
@@ -1091,27 +1144,48 @@
 
         <!-- VIEW 14: AI POLICY ASSISTANT / FAQ -->
         <section id="view-assistant" class="app-view">
-          <div class="view-header">
-            <div class="kicker">Interactive FAQ</div>
-            <h1 class="view-title">CampusCare AI Assistant</h1>
-            <p class="view-subtitle">Instant answers on university grievance policies, SLA resolution guarantees, and administrative workflows.</p>
+          <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div class="kicker">University Regulations & Student Rights</div>
+              <h1 class="view-title">CampusCare AI Policy Guide</h1>
+              <p class="view-subtitle">Interactive 24/7 ombudsman answering any question on campus rules, SLAs, hostel policies, and grievance redressal.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span id="assistant-role-context-badge" class="badge" style="background: var(--primary-subtle); color: var(--primary); font-weight: 700;">🎓 Student Guidance Mode</span>
+              <span class="badge" style="background: #f0fdf4; color: #16a34a; font-weight: 700;">🟢 Online Redressal Engine</span>
+            </div>
           </div>
-          <div class="card" style="padding: 0; overflow: hidden;">
-            <div id="assistant-messages" style="height: 380px; padding: 1rem; overflow-y: auto;">
-              <div class="chat-bubble theirs" style="margin-bottom: 0.75rem;">
-                Hello! I am the CampusCare University Grievance Guide. Ask me anything about university complaint filing, guaranteed SLA timelines, resolution verification, emergency reporting, or office contact points.
+
+          <!-- Main Assistant Responsive Card -->
+          <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow);">
+            <!-- Messages stream -->
+            <div id="assistant-messages" style="min-height: 380px; max-height: 520px; padding: 1.25rem; overflow-y: auto; background: var(--bg-surface); scroll-behavior: smooth;">
+              <div class="chat-bubble theirs" style="margin-bottom: 0.85rem;">
+                <div style="font-weight: 800; margin-bottom: 4px; color: var(--primary);">🎓 CampusCare University Policy Guide</div>
+                Hello! I am your 24/7 automated campus redressal advisor. You can ask me <b>any question</b> about university policies, hostel curfew, water/electricity breakdowns, fee refunds, anti-ragging safety, SLA resolution deadlines, how to appeal to the Ombudsman, or how to reopen an issue if it wasn't fixed properly.
               </div>
             </div>
-            <div id="assistant-chips" style="padding: 0.5rem 1rem; background: var(--bg-subtle); border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
-              <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-subtle); text-transform: uppercase;">Quick Topics:</span>
+
+            <!-- Quick Topics Scrollable Strip -->
+            <div id="assistant-chips" style="padding: 0.65rem 1rem; background: var(--bg-subtle); border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center;">
+              <span style="font-size: 0.68rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px;">Quick Topics:</span>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="Hi">👋 Hi & What I Can Do</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="What is the mandatory attendance criteria and medical condonation policy?">⏱️ 75% Attendance Rule</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="What is the hostel curfew timing and how do I apply for a digital gate pass?">🏠 Hostel Curfew & Gate Pass</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="How do I troubleshoot Wi-Fi captive portal error 403 or register my device MAC address?">📶 Wi-Fi MAC & Error 403</button>
               <button type="button" class="demo-chip assistant-chip" data-prompt="What should I do if my hostel has no water supply or electricity?">💧 Hostel Outage (SLA)</button>
               <button type="button" class="demo-chip assistant-chip" data-prompt="How can I report anti-ragging or safety concerns anonymously?">🛡️ Anonymous Safety</button>
               <button type="button" class="demo-chip assistant-chip" data-prompt="What happens when an SLA deadline is missed by the department?">⏱️ Missed Deadline Escalation</button>
-              <button type="button" class="demo-chip assistant-chip" data-prompt="How do I reopen an issue if the staff marked it resolved without fixing it?">🔄 Reopen Verification Loop</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="How do I reopen an issue if staff marked it resolved without fixing it?">🔄 Reopen Verification Loop</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="What is the policy for fee refund or scholarship deduction reconciliation?">💳 Fee & Scholarship Policy</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="How do I appeal a grievance to the University Ombudsman Tribunal?">🏛️ Ombudsman Tribunal Appeal</button>
+              <button type="button" class="demo-chip assistant-chip" data-prompt="How do I claim compensation for property damage from campus water leaks?">💰 Property Damage Relief</button>
             </div>
-            <div class="chat-input-bar">
-              <input id="assistant-input" type="text" class="form-input" placeholder="Ask about SLA deadlines, reopening a ticket, or filing anonymous complaints..." autocomplete="off" />
-              <button id="assistant-send-btn" class="btn btn-primary btn-sm">Ask Guide</button>
+
+            <!-- Chat Input Bar -->
+            <div class="chat-input-bar" style="padding: 0.85rem 1rem; background: var(--card); border-top: 1px solid var(--border); display: flex; gap: 0.5rem; align-items: center;">
+              <input id="assistant-input" type="text" class="form-input" style="flex: 1; padding: 0.65rem 0.85rem;" placeholder="Ask anything about campus rules, SLA deadlines, hostel policies, or grievance steps..." autocomplete="off" />
+              <button id="assistant-send-btn" class="btn btn-primary" style="padding: 0.65rem 1.25rem; font-weight: 700; white-space: nowrap;">Ask Guide →</button>
             </div>
           </div>
         </section>
@@ -2345,6 +2419,145 @@
         <h4 id="evidence-zoom-title" style="margin-bottom: 1rem; font-weight: 800;">Evidence Attachment</h4>
         <div style="max-height: 480px; overflow: hidden; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: #000;">
           <img id="evidence-zoom-img" src="" alt="Evidence" style="max-width: 100%; max-height: 480px; object-fit: contain;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Maintenance Window Modal (Staff & Infrastructure Desks) -->
+    <div id="maintenance-modal" class="modal-overlay">
+      <div class="modal-box" style="max-width: 580px;">
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <div class="kicker" style="color: var(--primary);">Infrastructure Operations</div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.35rem;">Schedule Campus Maintenance Window</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Publish advance shutdown, calibration, or servicing notices to alert residents and prevent duplicate student tickets.
+        </p>
+
+        <form id="maintenance-form">
+          <div class="form-group">
+            <label class="form-label">Maintenance Operation Title *</label>
+            <input id="maint-input-title" type="text" class="form-input" placeholder="e.g. Hostel Block B & C Overhead Tank UV Scouring & Chlorination" required />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Category / Unit *</label>
+              <select id="maint-input-category" class="form-select" required>
+                <option value="Hostel Maintenance">Hostel Maintenance</option>
+                <option value="IT Support">IT & Network Operations</option>
+                <option value="Electrical">Electrical Substation & Power</option>
+                <option value="Maintenance">Civil & Facility Maintenance</option>
+                <option value="Food Services">Food & Mess Facilities</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Impact Severity Level *</label>
+              <select id="maint-input-impact" class="form-select" required>
+                <option value="High (Service Disrupted)">🔴 High (Temporary Service Suspension)</option>
+                <option value="Medium (Intermittent)">🟠 Medium (Intermittent Outages)</option>
+                <option value="Low (Preventative)">🟢 Low (Routine / No Student Interruption)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Affected Campus Facility / Blocks *</label>
+              <input id="maint-input-area" type="text" class="form-input" placeholder="e.g. Hostel Blocks B & C, Floors 1-4" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Scheduled Date *</label>
+              <input id="maint-input-date" type="date" class="form-input" required />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Start Time & Window</label>
+              <input id="maint-input-time" type="text" class="form-input" placeholder="e.g. 08:30 AM - 01:00 PM (4.5h)" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duty Lead / Specialist</label>
+              <input id="maint-input-lead" type="text" class="form-input" placeholder="e.g. Dr. Rajesh Kumar (Ext. 204)" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Operational Scope & Alternative Arrangements for Students *</label>
+            <textarea id="maint-input-note" rows="3" class="form-textarea" placeholder="Detail the work being done, backup taps/Wi-Fi hotspots provided, and when normal service will be restored..." required></textarea>
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; cursor: pointer;">
+              <input type="checkbox" id="maint-input-broadcast" checked />
+              <span><b>Broadcast SMS & Portal Notice</b> to all resident students in affected zone</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 0.65rem;">
+            Publish Scheduled Maintenance Window →
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Omnipresent Floating AI Policy Guide Launcher & Quick Drawer (Accessible on all pages) -->
+    <div id="floating-ai-container" class="floating-ai-container">
+      <button id="floating-ai-guide-btn" class="floating-ai-btn" type="button" aria-label="Open CampusCare AI Policy Guide" title="CampusCare AI Policy Guide (Available on all pages)">
+        <span class="floating-ai-icon">🤖</span>
+        <span class="floating-ai-label">Ask CampusCare AI</span>
+        <span class="floating-ai-pulse"></span>
+      </button>
+
+      <!-- Floating Slide-over Drawer / Modal -->
+      <div id="floating-ai-drawer" class="floating-ai-drawer" aria-hidden="true">
+        <div class="floating-ai-header">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div class="floating-ai-avatar">🤖</div>
+            <div>
+              <div style="font-weight: 800; font-size: 0.92rem; color: var(--text);">CampusCare AI Policy Guide</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #22c55e; display: inline-block;"></span>
+                <span>Online · 24/7 Campus Ombudsman</span>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <button id="floating-ai-fullscreen-btn" type="button" class="btn btn-outline btn-xs" title="Open in Full Page View">
+              Full Page ↗
+            </button>
+            <button id="floating-ai-close-btn" type="button" class="floating-ai-close" aria-label="Close Assistant">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Topics Bar -->
+        <div class="floating-ai-quick-topics">
+          <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-subtle);">Suggested:</span>
+          <button type="button" class="floating-ai-chip" data-prompt="Hi">👋 Hi</button>
+          <button type="button" class="floating-ai-chip" data-prompt="What is the mandatory attendance percentage and medical condonation policy?">⏱️ 75% Attendance</button>
+          <button type="button" class="floating-ai-chip" data-prompt="What is the hostel curfew timing and how do I apply for a gate pass?">🏠 Hostel Curfew</button>
+          <button type="button" class="floating-ai-chip" data-prompt="How do I resolve Wi-Fi captive portal error 403 or register my device MAC address?">📶 Wi-Fi MAC & 403</button>
+          <button type="button" class="floating-ai-chip" data-prompt="How do I file a grievance regarding mess food quality and dining hygiene?">🍲 Mess Food SLA</button>
+          <button type="button" class="floating-ai-chip" data-prompt="How can I report ragging or safety harassment 100% anonymously?">🛡️ Anti-Ragging</button>
+          <button type="button" class="floating-ai-chip" data-prompt="How do I reopen a grievance if staff marked it resolved without fixing it?">🔄 Reopen Ticket</button>
+        </div>
+
+        <!-- Messages Stream -->
+        <div id="floating-ai-messages" class="floating-ai-messages">
+          <div class="chat-bubble theirs" style="margin-bottom: 0.75rem;">
+            <div style="font-weight: 800; margin-bottom: 4px; color: var(--primary);">🤖 CampusCare Policy Guide</div>
+            Hello! 👋 I am your 24/7 CampusCare AI Guide. Ask me anything about attendance rules, hostel curfew, Wi-Fi errors, mess hygiene, exam revaluation, or filing a grievance. Say <b>"Hi"</b> to see what I can do!
+          </div>
+        </div>
+
+        <!-- Input Bar -->
+        <div class="floating-ai-input-bar">
+          <input id="floating-ai-input" type="text" class="form-input" placeholder="Ask any question about campus rules..." autocomplete="off" />
+          <button id="floating-ai-send-btn" type="button" class="btn btn-primary" style="padding: 0.55rem 1rem; font-weight: 700; white-space: nowrap;">
+            Ask →
+          </button>
         </div>
       </div>
     </div>

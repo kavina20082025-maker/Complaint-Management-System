@@ -1,0 +1,12 @@
+# CampusCare - Python Testing Suite Dependencies
+# Install in VS Code terminal via: pip install -r requirements-test.txt
+
+# Core test runners
+pytest>=8.0.0
+pytest-cov>=5.0.0
+
+# HTTP API black-box testing
+requests>=2.31.0
+
+# Browser-based end-to-end black-box testing
+playwright>=1.42.0
